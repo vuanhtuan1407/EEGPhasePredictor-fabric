@@ -46,9 +46,9 @@ class EEGKFoldTrainer:
         self.n_epochs = n_epochs
         self.n_splits = n_splits
 
-        self.f1score = F1Score(task='multiclass', num_classes=params.NUM_CLASSES, average='macro')
-        self.auroc = AUROC(task='multiclass', num_classes=params.NUM_CLASSES, average='macro')
-        self.average_precision = AveragePrecision(task='multiclass', num_classes=params.NUM_CLASSES, average='macro')
+        self.f1score = F1Score(task='multiclass', num_classes=params.NUM_CLASSES, average='macro').to(self.device)
+        self.auroc = AUROC(task='multiclass', num_classes=params.NUM_CLASSES).to(self.device)  # default is macro
+        self.auprc = AveragePrecision(task='multiclass', num_classes=params.NUM_CLASSES).to(self.device)
 
         # print trainer summary
         # self.trainer_summary()
@@ -124,7 +124,7 @@ class EEGKFoldTrainer:
                     val_lbs = torch.concat(val_lb, dim=0)
                     val_lbs = torch.argmax(val_lbs, dim=-1)
                     epoch_auroc += self.f1score(val_pred, val_lbs).item()
-                    epoch_average_precision += self.average_precision(val_pred, val_lbs).item()
+                    epoch_average_precision += self.auprc(val_pred, val_lbs).item()
                     # epoch_f1score += self.f1score.compute()
 
             self.fabric.print(
