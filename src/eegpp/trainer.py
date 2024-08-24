@@ -111,7 +111,6 @@ class EEGKFoldTrainer:
                     for batch_idx, batch in val_bar:
                         _, lb, pred, loss = self.base_step(model, batch_idx, batch)
                         val_loss += loss.item()
-                        lb = torch.argmax(pred, dim=-1)
                         val_pred.append(pred)
                         val_lbs.append(lb)
                         val_bar.set_postfix({"step_loss": loss.item()})
@@ -124,7 +123,6 @@ class EEGKFoldTrainer:
                     val_pred = torch.concat(val_pred, dim=0)
                     val_lbs = torch.concat(val_lbs, dim=0)
                     val_lbs = torch.argmax(val_lbs, dim=-1)
-                    print(val_pred.shape, val_lbs.shape)
                     epoch_auroc += self.f1score(val_pred, val_lbs).item()
                     epoch_average_precision += self.average_precision(val_pred, val_lbs).item()
                     # epoch_f1score += self.f1score.compute()
