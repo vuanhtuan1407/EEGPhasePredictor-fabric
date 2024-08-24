@@ -15,4 +15,7 @@ DATASET_FILE_IDX = 'all'
 LEARNING_RATE = 1e-3
 RD_SEED = 0
 N_SPLITS = 2
+POS_IDX = int(W_OUT / 2)
+
+# print(POS_IDX)
 

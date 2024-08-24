@@ -104,15 +104,15 @@ class EEGKFoldTrainer:
                 # VALIDATION LOOP
                 model.eval()
                 val_loss = 0
-                val_lbs = []
+                val_lb = []
                 val_pred = []
                 with torch.no_grad():
                     val_bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader), desc="Validation")
                     for batch_idx, batch in val_bar:
                         _, lb, pred, loss = self.base_step(model, batch_idx, batch)
                         val_loss += loss.item()
-                        val_pred.append(pred)
-                        val_lbs.append(lb)
+                        val_pred.append(pred[:, params.POS_IDX, :])  # only take the main label
+                        val_lb.append(lb[:, params.POS_IDX, :])
                         val_bar.set_postfix({"step_loss": loss.item()})
                         # self.f1score.update(pred, lb)
 
@@ -121,7 +121,7 @@ class EEGKFoldTrainer:
                     epoch_loss += val_loss
 
                     val_pred = torch.concat(val_pred, dim=0)
-                    val_lbs = torch.concat(val_lbs, dim=0)
+                    val_lbs = torch.concat(val_lb, dim=0)
                     val_lbs = torch.argmax(val_lbs, dim=-1)
                     epoch_auroc += self.f1score(val_pred, val_lbs).item()
                     epoch_average_precision += self.average_precision(val_pred, val_lbs).item()
