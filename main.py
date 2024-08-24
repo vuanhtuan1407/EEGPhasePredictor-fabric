@@ -13,3 +13,10 @@ if __name__ == "__main__":
         devices=params.DEVICES,
     )
     trainer.fit()
+
+# import torch
+#
+# t = torch.randint(low=1, high=5, size=(2, 2, 2))
+# print(t.shape)
+# print(torch.argmax(t, dim=-1).shape)
+
