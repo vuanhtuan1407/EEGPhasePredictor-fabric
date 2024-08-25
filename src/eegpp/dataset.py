@@ -33,7 +33,7 @@ class EEGDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.contain_side == 'none':
-            return self._getseq_idx(idx), self._getlb_idx(idx)
+            return self._getseq_idx(idx), self._getlb_idx(idx), self._getlb_binary_idx(idx)
         else:
             seqs, lbs, lbs_binary = [[], [], []]
             if self.contain_side == 'right':

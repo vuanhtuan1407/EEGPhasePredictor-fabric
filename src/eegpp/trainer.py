@@ -1,9 +1,12 @@
 import time
+from pathlib import Path
 
 import torch
 import wandb
 from lightning.fabric import Fabric
 from pytorch_model_summary import summary
+from sklearn.metrics import average_precision_score as auprc
+from sklearn.metrics import roc_auc_score as auroc
 from torch import nn
 from torch.optim import Adam
 # from torchmetrics import F1Score, AUROC, AveragePrecision
@@ -17,8 +20,6 @@ from src.eegpp.utils.callback_utils import model_checkpoint
 from src.eegpp.utils.general_utils import generate_normal_vector
 # from src.eegpp.models.baseline.cnn_model import CNN1DModel
 from src.eegpp.utils.model_utils import get_model
-from sklearn.metrics import roc_auc_score as auroc
-from sklearn.metrics import average_precision_score as auprc
 
 torch.set_float32_matmul_precision('medium')
 wandb.require('core')
@@ -44,6 +45,7 @@ class EEGKFoldTrainer:
             project='EEGPhasePredictor-fabric',
             name=f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))}',
             log_model='all',
+            save_dir=str(Path(OUT_DIR) / 'logs'),
         )
         self.logger.experiment.config['model_type'] = params.MODEL_TYPE
         self.logger.experiment.config['batch_size'] = params.BATCH_SIZE
@@ -200,8 +202,9 @@ class EEGKFoldTrainer:
                     epoch_auprc += auprc(val_lb, val_pred)
 
                     val_pred_binary = self.softmax(torch.concat(val_pred_binary, dim=0)).detach().cpu().numpy()
-                    val_lb_binary = self.softmax(torch.concat(val_lb_binary, dim=0))
-                    val_lb_binary = torch.argmax(val_lb_binary, dim=-1).detach().cpu().numpy()
+                    val_lb_binary = torch.concat(val_lb_binary, dim=0).detach().cpu().numpy()
+                    # print(val_pred_binary[:2], val_lb_binary[:2])
+                    # val_lb_binary = torch.argmax(val_lb_binary, dim=-1)
                     epoch_auroc_binary += auroc(val_lb_binary, val_pred_binary)
                     epoch_auprc_binary += auprc(val_lb_binary, val_pred_binary)
                     # epoch_f1score += self.f1score.compute()
