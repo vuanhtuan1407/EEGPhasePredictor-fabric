@@ -39,16 +39,16 @@ class EEGKFoldTrainer:
     ):
         self.use_logger = use_logger
         if use_logger:
-            logger = WandbLogger(
+            self.logger = WandbLogger(
                 project='EEGPhasePredictor-fabric',
                 name=f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))}',
                 log_model='all'
             )
-            logger.experiment.config['model_type'] = params.MODEL_TYPE
-            logger.experiment.config['batch_size'] = params.BATCH_SIZE
-            logger.experiment.config['w_out'] = params.W_OUT
+            self.logger.experiment.config['model_type'] = params.MODEL_TYPE
+            self.logger.experiment.config['batch_size'] = params.BATCH_SIZE
+            self.logger.experiment.config['w_out'] = params.W_OUT
         else:
-            logger = None
+            self.logger = None
 
         if callbacks is None:
             callbacks = [model_checkpoint]
@@ -58,7 +58,7 @@ class EEGKFoldTrainer:
             devices=devices,
             strategy='auto',
             callbacks=callbacks,
-            loggers=logger,
+            loggers=self.logger,
         )
         self.fabric.launch()
         self.device = self.fabric.device
@@ -105,7 +105,7 @@ class EEGKFoldTrainer:
     def fit(self):
         for epoch in range(self.n_epochs):
             self.fabric.print(f"Epoch {epoch}/{self.n_epochs}")
-            self.fabric.log_dict({'epoch': epoch})
+            self.logger.log_dict({'epoch': epoch})
             epoch_loss = 0
             # epoch_f1score = 0
             epoch_auroc = 0
@@ -120,6 +120,7 @@ class EEGKFoldTrainer:
 
                 # TRAINING LOOP
                 model.train()
+                self.logger.watch(model)
                 train_loss = 0
                 train_bar = tqdm(enumerate(train_dataloader), total=len(train_dataloader), desc="Training")
                 for batch_idx, batch in train_bar:
@@ -132,7 +133,7 @@ class EEGKFoldTrainer:
 
                 train_loss = train_loss / len(train_dataloader)
                 train_bar.set_postfix({"epoch_loss": train_loss})
-                self.fabric.log_dict({f'train_loss_fold_{k}': train_loss})
+                self.logger.log_dict({f'train_loss_fold_{k}': train_loss})
 
                 # VALIDATION LOOP
                 model.eval()
@@ -151,7 +152,7 @@ class EEGKFoldTrainer:
 
                     val_loss = val_loss / len(val_dataloader)
                     val_bar.set_postfix({"epoch_loss": val_loss})
-                    self.fabric.log_dict({f"val_loss_fold_{k}": val_loss})
+                    self.logger.log_dict({f"val_loss_fold_{k}": val_loss})
                     epoch_loss += val_loss
 
                     val_pred = torch.concat(val_pred, dim=0)
@@ -161,7 +162,7 @@ class EEGKFoldTrainer:
                     epoch_auprc += self.auprc(val_pred, val_lbs).item()
                     # epoch_f1score += self.f1score.compute()
 
-            self.fabric.log_dict({
+            self.logger.log_dict({
                 "mean_val_loss": epoch_loss / self.n_splits,
                 "mean_val_auroc": epoch_auroc / self.n_splits,
                 "mean_val_auprc": epoch_auprc / self.n_splits,
@@ -180,8 +181,8 @@ class EEGKFoldTrainer:
     def test(self):
         pass
 
-    def save_model(self):
-        pass
+    def load_model(self):
+        self.logger.download_artifact("USER/PROJECT/MODEL-RUN_ID:VERSION", artifact_type="model")
 
     def trainer_summary(self):
         print("Using device: ", self.fabric.device)
