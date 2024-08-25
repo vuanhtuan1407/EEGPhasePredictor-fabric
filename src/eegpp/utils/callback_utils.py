@@ -13,11 +13,11 @@ from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 # )
 # model_checkpoint.FILE_EXTENSION = '.pkl'
 
-model_checkpoint = ModelCheckpoint(monitor='val_loss', mode='min')
-model_checkpoint.FILE_EXTENSION = '.pkl'
+model_checkpoint = ModelCheckpoint(monitor='val/mean_loss', mode='min')
+# model_checkpoint.FILE_EXTENSION = '.pkl'
 
 early_stopping = EarlyStopping(
-    monitor="val_loss",
+    monitor="val/mean_loss",
     min_delta=0.00,
     patience=11,
     verbose=True,

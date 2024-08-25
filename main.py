@@ -12,7 +12,7 @@ def parse_arguments():
     parser.add_argument("--model_type", type=str, default="cnn1d")
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--n_epochs", type=int, default=1)
+    parser.add_argument("--n_epochs", type=int, default=2)
     parser.add_argument("--n_splits", type=int, default=2)
     parser.add_argument("--n_workers", type=int, default=0)
     return parser.parse_args()
@@ -25,7 +25,7 @@ def remove_all_logs():
 
 if __name__ == "__main__":
     # remove all logs
-    remove_all_logs()
+    # remove_all_logs()
 
     args = parse_arguments()
     model = get_model(args.model_type)
@@ -38,7 +38,6 @@ if __name__ == "__main__":
         n_workers=args.n_workers,
         accelerator=params.ACCELERATOR,
         devices=params.DEVICES,
-        use_logger=True
     )
     trainer.fit()
 

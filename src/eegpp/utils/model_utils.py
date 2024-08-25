@@ -8,3 +8,7 @@ def get_model(model_type):
         return None
     else:
         raise ValueError(f'Model type {model_type} not supported')
+
+
+if __name__ == '__main__':
+    pass

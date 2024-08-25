@@ -10,6 +10,7 @@ from torchmetrics import F1Score, AUROC, AveragePrecision
 from tqdm import tqdm
 from wandb.integration.lightning.fabric import WandbLogger
 
+from out import OUT_DIR
 from src.eegpp import params
 from src.eegpp.dataloader import EEGKFoldDataLoader
 from src.eegpp.utils.callback_utils import model_checkpoint
@@ -34,21 +35,17 @@ class EEGKFoldTrainer:
             accelerator='auto',
             devices='auto',
             callbacks=None,
-            use_logger=False,
+            # save_last=False
 
     ):
-        self.use_logger = use_logger
-        if use_logger:
-            self.logger = WandbLogger(
-                project='EEGPhasePredictor-fabric',
-                name=f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))}',
-                log_model='all'
-            )
-            self.logger.experiment.config['model_type'] = params.MODEL_TYPE
-            self.logger.experiment.config['batch_size'] = params.BATCH_SIZE
-            self.logger.experiment.config['w_out'] = params.W_OUT
-        else:
-            self.logger = None
+        self.logger = WandbLogger(
+            project='EEGPhasePredictor-fabric',
+            name=f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))}',
+            log_model='all',
+        )
+        self.logger.experiment.config['model_type'] = params.MODEL_TYPE
+        self.logger.experiment.config['batch_size'] = params.BATCH_SIZE
+        self.logger.experiment.config['w_out'] = params.W_OUT
 
         if callbacks is None:
             callbacks = [model_checkpoint]
@@ -69,12 +66,14 @@ class EEGKFoldTrainer:
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.n_epochs = n_epochs
         self.n_splits = n_splits
+        # self.save_last = save_last
 
         self.f1score = F1Score(task='multiclass', num_classes=params.NUM_CLASSES, average='macro').to(self.device)
         self.auroc = AUROC(task='multiclass', num_classes=params.NUM_CLASSES).to(self.device)  # default is macro
         self.auprc = AveragePrecision(task='multiclass', num_classes=params.NUM_CLASSES).to(self.device)
 
-        self.best_val_loss = -1e6
+        self.best_val_loss = 1e6
+        self.early_stopping = 3
 
         # print trainer summary
         self.trainer_summary()
@@ -103,9 +102,11 @@ class EEGKFoldTrainer:
         return loss
 
     def fit(self):
+        wandb.define_metric('train/epoch')
+        wandb.define_metric('train/*', step_metric='train/epoch')
+        wandb.define_metric('val/*', step_metric='train/epoch')
         for epoch in range(self.n_epochs):
             self.fabric.print(f"Epoch {epoch}/{self.n_epochs}")
-            self.logger.log_dict({'epoch': epoch})
             epoch_loss = 0
             # epoch_f1score = 0
             epoch_auroc = 0
@@ -120,7 +121,7 @@ class EEGKFoldTrainer:
 
                 # TRAINING LOOP
                 model.train()
-                self.logger.watch(model)
+                wandb.watch(model)
                 train_loss = 0
                 train_bar = tqdm(enumerate(train_dataloader), total=len(train_dataloader), desc="Training")
                 for batch_idx, batch in train_bar:
@@ -133,7 +134,10 @@ class EEGKFoldTrainer:
 
                 train_loss = train_loss / len(train_dataloader)
                 train_bar.set_postfix({"epoch_loss": train_loss})
-                self.logger.log_dict({f'train_loss_fold_{k}': train_loss})
+                self.fabric.log_dict({
+                    "train/epoch": epoch,
+                    f'train/loss_fold_{k}': train_loss
+                })
 
                 # VALIDATION LOOP
                 model.eval()
@@ -152,7 +156,22 @@ class EEGKFoldTrainer:
 
                     val_loss = val_loss / len(val_dataloader)
                     val_bar.set_postfix({"epoch_loss": val_loss})
-                    self.logger.log_dict({f"val_loss_fold_{k}": val_loss})
+                    self.fabric.log_dict({
+                        "train/epoch": epoch,
+                        f"val/loss_fold_{k}": val_loss
+                    })
+
+                    if val_loss < self.best_val_loss:
+                        self.best_val_loss = val_loss
+                        state_dict = {
+                            "epoch": epoch,
+                            "model": model,
+                            "optimizer": optimizer,
+                        }
+                        self.fabric.save(f'{OUT_DIR}/checkpoints/best.pkl', state_dict)
+                    else:
+                        self.early_stopping -= 1
+
                     epoch_loss += val_loss
 
                     val_pred = torch.concat(val_pred, dim=0)
@@ -162,10 +181,11 @@ class EEGKFoldTrainer:
                     epoch_auprc += self.auprc(val_pred, val_lbs).item()
                     # epoch_f1score += self.f1score.compute()
 
-            self.logger.log_dict({
-                "mean_val_loss": epoch_loss / self.n_splits,
-                "mean_val_auroc": epoch_auroc / self.n_splits,
-                "mean_val_auprc": epoch_auprc / self.n_splits,
+            self.fabric.log_dict({
+                "train/epoch": epoch,
+                "val/mean_loss": epoch_loss / self.n_splits,
+                "val/mean_auroc": epoch_auroc / self.n_splits,
+                "val/mean_auprc": epoch_auprc / self.n_splits,
             })
 
             self.fabric.print(
@@ -175,14 +195,14 @@ class EEGKFoldTrainer:
                 f"Mean Validation AUPRC {epoch_auprc / self.n_splits}"
             )
 
-        if self.use_logger:
-            wandb.finish(quiet=True)
+            if self.early_stopping <= 0:
+                self.fabric.print("Early Stopping because validation loss did not improve!")
+                break
+
+        wandb.finish(quiet=True)
 
     def test(self):
         pass
-
-    def load_model(self):
-        self.logger.download_artifact("USER/PROJECT/MODEL-RUN_ID:VERSION", artifact_type="model")
 
     def trainer_summary(self):
         print("Using device: ", self.fabric.device)
@@ -196,3 +216,4 @@ if __name__ == '__main__':
     trainer = EEGKFoldTrainer(model=model, lr=params.LEARNING_RATE, n_splits=params.N_SPLITS,
                               n_epochs=params.NUM_EPOCHS, accelerator=params.ACCELERATOR, devices=params.DEVICES)
     trainer.fit()
+    # trainer.load_model()
