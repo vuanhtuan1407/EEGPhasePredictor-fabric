@@ -23,6 +23,7 @@ from src.eegpp.utils.model_utils import get_model
 
 torch.set_float32_matmul_precision('medium')
 wandb.require('core')
+wandb.init(project='EEGPhasePredictor-fabric', settings=wandb.Settings(start_method='fork'))
 
 
 class EEGKFoldTrainer:
@@ -45,7 +46,7 @@ class EEGKFoldTrainer:
             project='EEGPhasePredictor-fabric',
             name=f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))}',
             log_model='all',
-            save_dir=str(Path(OUT_DIR) / 'logs'),
+            save_dir=str(Path(OUT_DIR) / 'logs')
         )
         self.logger.experiment.config['model_type'] = params.MODEL_TYPE
         self.logger.experiment.config['batch_size'] = params.BATCH_SIZE
