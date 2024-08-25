@@ -11,6 +11,7 @@ if __name__ == "__main__":
         n_splits=params.N_SPLITS,
         accelerator=params.ACCELERATOR,
         devices=params.DEVICES,
+        use_logger=True
     )
     trainer.fit()
 
@@ -19,4 +20,3 @@ if __name__ == "__main__":
 # t = torch.randint(low=1, high=5, size=(2, 2, 2))
 # print(t.shape)
 # print(torch.argmax(t, dim=-1).shape)
-
