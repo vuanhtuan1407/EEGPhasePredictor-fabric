@@ -19,8 +19,8 @@ LABEL_FILES = [
 DUMP_DATA_FILES = {
     "train": [
         str(Path(DUMP_DATA_DIR, "dump_eeg_1.pkl")),
-        str(Path(DUMP_DATA_DIR, "dump_eeg_2.pkl")),
-        str(Path(DUMP_DATA_DIR, "dump_eeg_3.pkl")),
+        # str(Path(DUMP_DATA_DIR, "dump_eeg_2.pkl")),
+        # str(Path(DUMP_DATA_DIR, "dump_eeg_3.pkl")),
 
     ],
     "infer": [

@@ -3,6 +3,8 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/data/dump" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20240825_220127-832qmyf6/logs" />
     </content>
     <orderEntry type="jdk" jdkName="EEGp39" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

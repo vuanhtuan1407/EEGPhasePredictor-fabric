@@ -23,7 +23,7 @@ class EEGKFoldDataLoader:
         if isinstance(dataset_files, list):
             self.dataset_files = dataset_files
         else:
-            self.dataset_files = [0, 1, 2]
+            self.dataset_files = range(len(DUMP_DATA_FILES['train']))
 
         self.n_splits = n_splits
         self.n_workers = n_workers

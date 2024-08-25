@@ -3,6 +3,7 @@ data/dump
 
 # logs
 logs
+wandb
 
 # out
 out

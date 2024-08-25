@@ -18,6 +18,7 @@ from src.eegpp.utils.general_utils import generate_normal_vector
 from src.eegpp.utils.model_utils import get_model
 
 torch.set_float32_matmul_precision('medium')
+wandb.require('core')
 
 
 class EEGKFoldTrainer:
@@ -25,12 +26,13 @@ class EEGKFoldTrainer:
             self,
             model: nn.Module,
             lr=1e-3,
+            batch_size=8,
             weight_decay=0,
             n_splits=5,
             n_epochs=10,
+            n_workers=0,
             accelerator='auto',
             devices='auto',
-            strategy='auto',
             callbacks=None,
             use_logger=False,
 
@@ -54,7 +56,7 @@ class EEGKFoldTrainer:
         self.fabric = Fabric(
             accelerator=accelerator,
             devices=devices,
-            strategy=strategy,
+            strategy='auto',
             callbacks=callbacks,
             loggers=logger,
         )
@@ -63,7 +65,7 @@ class EEGKFoldTrainer:
 
         self.models = [model for _ in range(n_splits)]
         self.optimizers = [Adam(model.parameters(), lr=lr, weight_decay=weight_decay) for model in self.models]
-        self.dataloaders = EEGKFoldDataLoader(n_splits=n_splits)
+        self.dataloaders = EEGKFoldDataLoader(n_splits=n_splits, batch_size=batch_size, n_workers=n_workers)
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.n_epochs = n_epochs
         self.n_splits = n_splits
@@ -103,10 +105,11 @@ class EEGKFoldTrainer:
     def fit(self):
         for epoch in range(self.n_epochs):
             self.fabric.print(f"Epoch {epoch}/{self.n_epochs}")
+            self.fabric.log_dict({'epoch': epoch})
             epoch_loss = 0
             # epoch_f1score = 0
             epoch_auroc = 0
-            epoch_average_precision = 0
+            epoch_auprc = 0
             for k in range(self.n_splits):
                 self.fabric.print(f"Working on fold {k}")
                 model, optimizer = self.models[k], self.optimizers[k]
@@ -117,13 +120,19 @@ class EEGKFoldTrainer:
 
                 # TRAINING LOOP
                 model.train()
+                train_loss = 0
                 train_bar = tqdm(enumerate(train_dataloader), total=len(train_dataloader), desc="Training")
                 for batch_idx, batch in train_bar:
                     optimizer.zero_grad()
                     _, _, _, loss = self.base_step(model, batch_idx, batch)
+                    train_loss += loss.item()
                     self.fabric.backward(loss)
                     optimizer.step()
                     train_bar.set_postfix({"step_loss": loss.item()})
+
+                train_loss = train_loss / len(train_dataloader)
+                train_bar.set_postfix({"epoch_loss": train_loss})
+                self.fabric.log_dict({f'train_loss_fold_{k}': train_loss})
 
                 # VALIDATION LOOP
                 model.eval()
@@ -142,43 +151,47 @@ class EEGKFoldTrainer:
 
                     val_loss = val_loss / len(val_dataloader)
                     val_bar.set_postfix({"epoch_loss": val_loss})
+                    self.fabric.log_dict({f"val_loss_fold_{k}": val_loss})
                     epoch_loss += val_loss
 
                     val_pred = torch.concat(val_pred, dim=0)
                     val_lbs = torch.concat(val_lb, dim=0)
                     val_lbs = torch.argmax(val_lbs, dim=-1)
-                    epoch_auroc += self.f1score(val_pred, val_lbs).item()
-                    epoch_average_precision += self.auprc(val_pred, val_lbs).item()
+                    epoch_auroc += self.auprc(val_pred, val_lbs).item()
+                    epoch_auprc += self.auprc(val_pred, val_lbs).item()
                     # epoch_f1score += self.f1score.compute()
+
+            self.fabric.log_dict({
+                "mean_val_loss": epoch_loss / self.n_splits,
+                "mean_val_auroc": epoch_auroc / self.n_splits,
+                "mean_val_auprc": epoch_auprc / self.n_splits,
+            })
 
             self.fabric.print(
                 f"Epoch {epoch}/{self.n_epochs}\n"
                 f"Mean Validation Loss {epoch_loss / self.n_splits}\n"
                 f"Mean Validation AUROC {epoch_auroc / self.n_splits}\n"
-                f"Mean Validation Average Precision {epoch_average_precision / self.n_splits}"
+                f"Mean Validation AUPRC {epoch_auprc / self.n_splits}"
             )
 
         if self.use_logger:
-            wandb.finish()
+            wandb.finish(quiet=True)
 
     def test(self):
+        pass
+
+    def save_model(self):
         pass
 
     def trainer_summary(self):
         print("Using device: ", self.fabric.device)
         input_shape = (params.BATCH_SIZE, 3, (params.W_OUT * params.MAX_SEQ_SIZE))
-        inp = torch.ones(input_shape, device=self.device)
+        inp = torch.ones(input_shape)
         summary(self.models[0], inp, batch_size=params.BATCH_SIZE, show_input=True, print_summary=True)
 
 
 if __name__ == '__main__':
     model = get_model(params.MODEL_TYPE)
-    trainer = EEGKFoldTrainer(
-        model=model,
-        lr=params.LEARNING_RATE,
-        n_epochs=params.NUM_EPOCHS,
-        n_splits=params.N_SPLITS,
-        accelerator=params.ACCELERATOR,
-        devices=params.DEVICES,
-    )
+    trainer = EEGKFoldTrainer(model=model, lr=params.LEARNING_RATE, n_splits=params.N_SPLITS,
+                              n_epochs=params.NUM_EPOCHS, accelerator=params.ACCELERATOR, devices=params.DEVICES)
     trainer.fit()
