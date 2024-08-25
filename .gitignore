@@ -8,3 +8,4 @@ wandb
 # out
 out/checkpoints
 out/logs/wandb
+out/wandb

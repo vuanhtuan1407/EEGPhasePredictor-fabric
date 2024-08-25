@@ -1,3 +1,4 @@
+import os
 import time
 from pathlib import Path
 
@@ -23,11 +24,10 @@ from src.eegpp.utils.model_utils import get_model
 
 torch.set_float32_matmul_precision('medium')
 wandb.require('core')
-wandb.login(key="3c8685dbfce5b23f56fce47a675b7a3569dead2c")
 wandb.init(
     project='EEGPhasePredictor-fabric',
     name=f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))}',
-    dir=str(Path(OUT_DIR) / 'logs'),
+    dir=str(Path(OUT_DIR)),
     settings=wandb.Settings(start_method='fork')
 )
 
@@ -48,7 +48,7 @@ class EEGKFoldTrainer:
             # save_last=False
 
     ):
-        self.logger = WandbLogger(log_model='all', save_dir=str(Path(OUT_DIR) / 'logs'))
+        self.logger = WandbLogger(log_model='all', save_dir=str(Path(OUT_DIR)))
         self.logger.experiment.config['model_type'] = params.MODEL_TYPE
         self.logger.experiment.config['batch_size'] = params.BATCH_SIZE
         self.logger.experiment.config['w_out'] = params.W_OUT
