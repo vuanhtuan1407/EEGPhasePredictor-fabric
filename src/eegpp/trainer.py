@@ -1,5 +1,3 @@
-import os
-import time
 from pathlib import Path
 
 import torch
@@ -21,15 +19,6 @@ from src.eegpp.utils.callback_utils import model_checkpoint
 from src.eegpp.utils.general_utils import generate_normal_vector
 # from src.eegpp.models.baseline.cnn_model import CNN1DModel
 from src.eegpp.utils.model_utils import get_model
-
-torch.set_float32_matmul_precision('medium')
-wandb.require('core')
-wandb.init(
-    project='EEGPhasePredictor-fabric',
-    name=f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))}',
-    dir=str(Path(OUT_DIR)),
-    settings=wandb.Settings(start_method='fork')
-)
 
 
 class EEGKFoldTrainer:
