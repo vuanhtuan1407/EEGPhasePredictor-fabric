@@ -9,7 +9,7 @@ from src.eegpp.utils.model_utils import get_model
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type", type=str, default="cnn1d")
+    parser.add_argument("--model_type", type=str, default="fft2c")
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--n_epochs", type=int, default=2)
@@ -25,7 +25,7 @@ def remove_all_logs():
 
 if __name__ == "__main__":
     # remove all logs
-    # remove_all_logs()
+    remove_all_logs()
 
     args = parse_arguments()
     model = get_model(args.model_type)

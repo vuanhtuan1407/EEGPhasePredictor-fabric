@@ -35,23 +35,27 @@ class EEGDataset(Dataset):
         if self.contain_side == 'none':
             return self._getseq_idx(idx), self._getlb_idx(idx)
         else:
-            seqs, lbs = [[], []]
+            seqs, lbs, lbs_binary = [[], [], []]
             if self.contain_side == 'right':
                 for i in range(idx, idx + self.w_out):
                     seqs.append(self._getseq_idx(i))
                     lbs.append(self._getlb_idx(i))
+                    lbs_binary.append(self._getlb_binary_idx(i))
             elif self.contain_side == 'left':
                 for i in range(idx - self.w_out + 1, idx + 1):
                     seqs.append(self._getseq_idx(i))
                     lbs.append(self._getlb_idx(i))
+                    lbs_binary.append(self._getlb_binary_idx(i))
             elif self.contain_side == 'both':
                 pos_shift = int((self.w_out - 1) / 2)
                 for i in range(idx - pos_shift, idx + pos_shift + 1):
                     seqs.append(self._getseq_idx(i))
                     lbs.append(self._getlb_idx(i))
+                    lbs_binary.append(self._getlb_binary_idx(i))
             seqs = torch.concat(seqs, dim=-1)
             lbs = torch.stack(lbs)
-        return seqs, lbs
+            lbs_binary = torch.stack(lbs_binary)
+        return seqs, lbs, lbs_binary
 
     def _getseq_idx(self, idx):
         if idx < 0 or idx >= self.__len__():
@@ -64,7 +68,6 @@ class EEGDataset(Dataset):
             mot = torch.tensor(self.mot[idx], dtype=torch.float32) / self.mxs[2]
 
         return torch.stack([eeg, emg, mot])
-
 
     def _getlb_idx(self, idx):
         lb = torch.zeros(len(LABEL_DICT), dtype=torch.float32)
@@ -80,3 +83,14 @@ class EEGDataset(Dataset):
             for v in lb:
                 v = -1
             return lb
+
+    def _getlb_binary_idx(self, idx):
+        lb_binary = torch.zeros(2, dtype=torch.float32)
+        if not self.is_infer:
+            if 0 <= idx < self.__len__():
+                lb_idx = self.lbs[idx]
+                if lb_idx % 2 == 0 and lb_idx != -1:
+                    lb_binary[0] = 1.0
+                else:
+                    lb_binary[1] = 1.0
+        return lb_binary

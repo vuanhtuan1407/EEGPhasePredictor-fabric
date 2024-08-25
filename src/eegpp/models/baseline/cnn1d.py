@@ -58,7 +58,7 @@ class Conv1DLayer(nn.Module):
 class CNN1DModel(nn.Module):
     def __init__(self, yml_config_file='cnn1d_config.yml'):
         super().__init__()
-        self.model_type = 'cnn1d'
+        self.type = 'cnn1d'
         self.config = load_yaml_config(yml_config_file)
         conv_layer_config = self.config['conv_layers']
         self.conv1d = nn.Sequential()
@@ -89,7 +89,7 @@ class CNN1DModel(nn.Module):
             nn.Linear(in_features=ff_in_features * 2, out_features=len(LABEL_DICT) * params.W_OUT),
             nn.ReLU(),
         )
-        self.softmax = nn.Softmax(dim=-1)
+        # self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x):
         x = self.conv1d(x)
@@ -98,4 +98,4 @@ class CNN1DModel(nn.Module):
         x = self.ff2(x)
         x = x.reshape(-1, len(LABEL_DICT), params.W_OUT)
         x = x.transpose(1, 2)
-        return self.softmax(x)
+        return x
