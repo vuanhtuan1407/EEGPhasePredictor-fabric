@@ -1,13 +1,18 @@
+import time
+
 import torch
+import wandb
 from lightning.fabric import Fabric
+from pytorch_model_summary import summary
 from torch import nn
 from torch.optim import Adam
 from torchmetrics import F1Score, AUROC, AveragePrecision
 from tqdm import tqdm
-from pytorch_model_summary import summary
+from wandb.integration.lightning.fabric import WandbLogger
 
 from src.eegpp import params
 from src.eegpp.dataloader import EEGKFoldDataLoader
+from src.eegpp.utils.callback_utils import model_checkpoint
 from src.eegpp.utils.general_utils import generate_normal_vector
 # from src.eegpp.models.baseline.cnn_model import CNN1DModel
 from src.eegpp.utils.model_utils import get_model
@@ -27,15 +32,31 @@ class EEGKFoldTrainer:
             devices='auto',
             strategy='auto',
             callbacks=None,
-            loggers=None,
+            use_logger=False,
 
     ):
+        self.use_logger = use_logger
+        if use_logger:
+            logger = WandbLogger(
+                project='EEGPhasePredictor-fabric',
+                name=f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))}',
+                log_model='all'
+            )
+            logger.experiment.config['model_type'] = params.MODEL_TYPE
+            logger.experiment.config['batch_size'] = params.BATCH_SIZE
+            logger.experiment.config['w_out'] = params.W_OUT
+        else:
+            logger = None
+
+        if callbacks is None:
+            callbacks = [model_checkpoint]
+
         self.fabric = Fabric(
             accelerator=accelerator,
             devices=devices,
             strategy=strategy,
             callbacks=callbacks,
-            loggers=loggers,
+            loggers=logger,
         )
         self.fabric.launch()
         self.device = self.fabric.device
@@ -137,15 +158,17 @@ class EEGKFoldTrainer:
                 f"Mean Validation Average Precision {epoch_average_precision / self.n_splits}"
             )
 
+        if self.use_logger:
+            wandb.finish()
+
     def test(self):
         pass
 
     def trainer_summary(self):
-        # input_shape = [params.BATCH_SIZE, 3, params.MAX_SEQ_SIZE]
         print("Using device: ", self.fabric.device)
         input_shape = (params.BATCH_SIZE, 3, (params.W_OUT * params.MAX_SEQ_SIZE))
-        inp = torch.zeros(input_shape)
-        summary(self.models[0], inp, show_input=True, print_summary=True)
+        inp = torch.ones(input_shape, device=self.device)
+        summary(self.models[0], inp, batch_size=params.BATCH_SIZE, show_input=True, print_summary=True)
 
 
 if __name__ == '__main__':
