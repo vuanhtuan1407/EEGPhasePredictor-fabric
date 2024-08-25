@@ -23,6 +23,7 @@ from src.eegpp.utils.model_utils import get_model
 
 torch.set_float32_matmul_precision('medium')
 wandb.require('core')
+wandb.login(key="3c8685dbfce5b23f56fce47a675b7a3569dead2c")
 wandb.init(
     project='EEGPhasePredictor-fabric',
     name=f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))}',
