@@ -4,9 +4,10 @@ from torch import nn
 from torch.optim import Adam
 from torchmetrics import F1Score, AUROC, AveragePrecision
 from tqdm import tqdm
+from pytorch_model_summary import summary
 
 from src.eegpp import params
-from src.eegpp.dataloader import EEGDataLoader
+from src.eegpp.dataloader import EEGKFoldDataLoader
 from src.eegpp.utils.general_utils import generate_normal_vector
 # from src.eegpp.models.baseline.cnn_model import CNN1DModel
 from src.eegpp.utils.model_utils import get_model
@@ -41,7 +42,7 @@ class EEGKFoldTrainer:
 
         self.models = [model for _ in range(n_splits)]
         self.optimizers = [Adam(model.parameters(), lr=lr, weight_decay=weight_decay) for model in self.models]
-        self.dataloaders = EEGDataLoader(n_splits=n_splits)
+        self.dataloaders = EEGKFoldDataLoader(n_splits=n_splits)
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.n_epochs = n_epochs
         self.n_splits = n_splits
@@ -50,8 +51,10 @@ class EEGKFoldTrainer:
         self.auroc = AUROC(task='multiclass', num_classes=params.NUM_CLASSES).to(self.device)  # default is macro
         self.auprc = AveragePrecision(task='multiclass', num_classes=params.NUM_CLASSES).to(self.device)
 
+        self.best_val_loss = -1e6
+
         # print trainer summary
-        # self.trainer_summary()
+        self.trainer_summary()
 
     @staticmethod
     def preprocess(x):
@@ -80,7 +83,7 @@ class EEGKFoldTrainer:
         for epoch in range(self.n_epochs):
             self.fabric.print(f"Epoch {epoch}/{self.n_epochs}")
             epoch_loss = 0
-            epoch_f1score = 0
+            # epoch_f1score = 0
             epoch_auroc = 0
             epoch_average_precision = 0
             for k in range(self.n_splits):
@@ -139,7 +142,10 @@ class EEGKFoldTrainer:
 
     def trainer_summary(self):
         # input_shape = [params.BATCH_SIZE, 3, params.MAX_SEQ_SIZE]
-        print(self.fabric.device)
+        print("Using device: ", self.fabric.device)
+        input_shape = (params.BATCH_SIZE, 3, (params.W_OUT * params.MAX_SEQ_SIZE))
+        inp = torch.zeros(input_shape)
+        summary(self.models[0], inp, show_input=True, print_summary=True)
 
 
 if __name__ == '__main__':

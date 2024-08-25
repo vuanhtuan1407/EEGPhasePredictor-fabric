@@ -6,7 +6,7 @@ from src.eegpp import params
 from src.eegpp.dataset import EEGDataset
 
 
-class EEGDataLoader:
+class EEGKFoldDataLoader:
     def __init__(
             self,
             dataset_files='all',
