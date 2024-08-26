@@ -61,6 +61,7 @@ class EEGKFoldTrainer:
         # self.auprc_binary = AveragePrecision(task='multiclass', num_classes=2).to(self.device)
 
         self.best_val_loss = 1e6
+        self.best_mean_val_loss = 1e6
         self.early_stopping = 3
 
         # print trainer summary
@@ -161,8 +162,6 @@ class EEGKFoldTrainer:
                             "optimizer": optimizer,
                         }
                         self.fabric.save(f'{OUT_DIR}/checkpoints/best.pkl', state_dict)
-                    else:
-                        self.early_stopping -= 1
 
                     epoch_loss += val_loss
 
@@ -181,7 +180,7 @@ class EEGKFoldTrainer:
                     epoch_auprc_binary += auprc(val_lb_binary, val_pred_binary)
                     # epoch_f1score += self.f1score.compute()
 
-            mean_loss = epoch_loss / self.n_splits
+            mean_val_loss = epoch_loss / self.n_splits
             mean_auroc = epoch_auroc / self.n_splits
             mean_auprc = epoch_auprc / self.n_splits
             mean_auroc_binary = epoch_auroc_binary / self.n_splits
@@ -192,7 +191,7 @@ class EEGKFoldTrainer:
 
             self.logger.update_epoch(epoch, fold=None)
             self.logger.log_dict({
-                "val/mean_loss": mean_loss,
+                "val/mean_val_loss": mean_val_loss,
                 "val/mean_auroc": mean_auroc,
                 "val/mean_auprc": mean_auprc,
                 "val/mean_auroc_binary": mean_auroc_binary,
@@ -203,10 +202,15 @@ class EEGKFoldTrainer:
 
             self.fabric.print(
                 f"Epoch {epoch + 1}/{self.n_epochs}\n"
-                f"Mean Validation Loss {mean_loss:.4f}\n"
+                f"Mean Validation Loss {mean_val_loss:.4f}\n"
                 f"Metric {metric:.4f}\n"
                 f"Metric Binary {metric_binary:.4f}\n"
             )
+
+            if mean_val_loss < self.best_mean_val_loss:
+                self.best_mean_val_loss = mean_val_loss
+            else:
+                self.early_stopping -= 1
 
             if self.early_stopping <= 0:
                 self.fabric.print("Early Stopping because validation loss did not improve!")
