@@ -8,6 +8,7 @@
       <excludeFolder url="file://$MODULE_DIR$/out/checkpoints" />
       <excludeFolder url="file://$MODULE_DIR$/out/logs/wandb" />
       <excludeFolder url="file://$MODULE_DIR$/out/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/out/figures" />
     </content>
     <orderEntry type="jdk" jdkName="EEGp39" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

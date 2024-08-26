@@ -45,8 +45,6 @@ class MyLogger(object):
                     self.global_state_dict[k].append(v)
 
     def save_to_csv(self):
-        for k, v in self.fold_state_dict.items():
-            print(k, len(v))
         global_state_df = pd.DataFrame.from_dict(self.global_state_dict)
         fold_state_df = pd.DataFrame.from_dict(self.fold_state_dict)
         global_state_df.to_csv(str(Path(self.log_dir, 'my_global_logs.csv')), index=False,
