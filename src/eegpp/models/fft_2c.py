@@ -4,14 +4,14 @@ from torch import nn
 from src.eegpp import params
 
 
-class FFT2CWOutModel(nn.Module):
+class FFT2CModel(nn.Module):
     def __init__(self, n_class=params.NUM_CLASSES, window_size=params.W_OUT, flag=1, out_collapsed=True):
         super().__init__()
         self.n_class = n_class
         self.window_size = window_size
         self.flag = flag
         self.out_collapsed = out_collapsed
-        self.type = "fft_2c_wout"
+        self.type = "fft2c"
         self.chain1_layers = nn.ModuleList()
         self.chain2_layers = nn.ModuleList()
         self.chains = [self.chain1_layers, self.chain2_layers]

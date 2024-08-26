@@ -21,17 +21,17 @@ def visualize_fit_process():
     ax.set_title("Training/Validation Loss")
     ax.set_xlabel('Epoch')
     ax.set_ylabel('Loss')
-    ax.set_ylim(top=4)
+    ax.set_ylim(top=2)
     fig.savefig(str(Path(OUT_DIR, 'figures', 'fit_process.jpg')))
 
 
-def visualize_metric():
+def visualize_val_metric():
     df = load_csv(str(Path(OUT_DIR, 'logs', 'my_global_logs.csv')))
     fig, ax = plt.subplots()
     df_melted = df.melt(
         id_vars=['epoch'],
-        value_vars=['val/mean_loss', 'val/mean_auroc', 'val/mean_auprc', 'val/mean_auroc_binary',
-                    'val/mean_auprc_binary', 'metric', 'metric_binary'],
+        value_vars=['val/mean_val_loss', 'val/mean_auroc', 'val/mean_auprc', 'val/mean_auroc_binary',
+                    'val/mean_auprc_binary', 'val/metric', '/val/metric_binary'],
         var_name='metric_type', value_name='metrics'
     )
     sns.lineplot(data=df_melted, x='epoch', y='metrics', hue='metric_type', markers=True)
@@ -43,4 +43,4 @@ def visualize_metric():
 
 if __name__ == '__main__':
     visualize_fit_process()
-    visualize_metric()
+    visualize_val_metric()

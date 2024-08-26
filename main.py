@@ -22,15 +22,7 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def remove_all_logs():
-    if os.path.exists("wandb"):
-        shutil.rmtree("wandb")
-
-
 if __name__ == "__main__":
-    # remove all logs
-    remove_all_logs()
-
     args = parse_arguments()
     model = get_model(args.model_type)
     trainer = EEGKFoldTrainer(
@@ -44,3 +36,4 @@ if __name__ == "__main__":
         devices=params.DEVICES,
     )
     trainer.fit()
+    trainer.test()

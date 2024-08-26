@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import torch
 from lightning.fabric import Fabric
 from pytorch_model_summary import summary
@@ -45,7 +47,7 @@ class EEGKFoldTrainer:
         self.device = self.fabric.device
 
         self.softmax = torch.nn.Softmax(dim=-1)
-
+        self.model = model
         self.models = [model for _ in range(n_splits)]
         self.optimizers = [Adam(model.parameters(), lr=lr, weight_decay=weight_decay) for model in self.models]
         self.dataloaders = EEGKFoldDataLoader(n_splits=n_splits, batch_size=batch_size, n_workers=n_workers)
@@ -106,7 +108,7 @@ class EEGKFoldTrainer:
             epoch_auprc_binary = 0
             for k in range(self.n_splits):
                 self.fabric.print(f"Working on fold {k + 1}/{self.n_splits}")
-                self.logger.update_epoch(epoch, fold=k)
+                self.logger.update_flag(flag='fit', epoch=epoch, fold=k)
                 model, optimizer = self.models[k], self.optimizers[k]
                 self.dataloaders.set_fold(k)
                 train_dataloader, val_dataloader = self.dataloaders.train_dataloader(), self.dataloaders.val_dataloader()
@@ -143,7 +145,7 @@ class EEGKFoldTrainer:
                         # ONLY VALIDATE ON THE MAIN SEGMENT
                         loss = self.loss_fn(pred[:, params.POS_IDX, :], lb[:, params.POS_IDX, :])
                         val_loss += loss.item()
-                        val_pred.append(pred[:, params.POS_IDX, :-1])
+                        val_pred.append(pred[:, params.POS_IDX, :-1])  # ignore the last class
                         val_lb.append(lb[:, params.POS_IDX, :-1])
                         val_pred_binary.append(pred_binary[:, params.POS_IDX, :])
                         val_lb_binary.append(lb_binary[:, params.POS_IDX, :])
@@ -161,20 +163,18 @@ class EEGKFoldTrainer:
                             "model": model,
                             "optimizer": optimizer,
                         }
-                        self.fabric.save(f'{OUT_DIR}/checkpoints/best.pkl', state_dict)
+                        self.fabric.save(f'{OUT_DIR}/checkpoints/{self.model.type}_best.pkl', state_dict)
 
                     epoch_loss += val_loss
 
                     val_pred = self.softmax(torch.concat(val_pred, dim=0)).detach().cpu().numpy()
                     val_lb = torch.concat(val_lb, dim=0)
                     val_lb = torch.argmax(val_lb, dim=-1).detach().cpu().numpy()
-                    # print(len(val_lb), len(val_pred))
                     epoch_auroc += auroc(val_lb, val_pred, multi_class='ovr')
                     epoch_auprc += auprc(val_lb, val_pred)
 
                     val_pred_binary = self.softmax(torch.concat(val_pred_binary, dim=0)).detach().cpu().numpy()
                     val_lb_binary = torch.concat(val_lb_binary, dim=0).detach().cpu().numpy()
-                    # print(val_pred_binary[:2], val_lb_binary[:2])
                     # val_lb_binary = torch.argmax(val_lb_binary, dim=-1)
                     epoch_auroc_binary += auroc(val_lb_binary, val_pred_binary)
                     epoch_auprc_binary += auprc(val_lb_binary, val_pred_binary)
@@ -189,15 +189,15 @@ class EEGKFoldTrainer:
             metric = 2 * mean_auroc * mean_auprc / (mean_auroc + mean_auprc + 1e-10)
             metric_binary = 2 * mean_auroc_binary * mean_auprc_binary / (mean_auroc_binary + mean_auprc_binary + 1e-10)
 
-            self.logger.update_epoch(epoch, fold=None)
+            self.logger.update_flag(flag='val_metrics', epoch=epoch, fold=None)
             self.logger.log_dict({
                 "val/mean_val_loss": mean_val_loss,
                 "val/mean_auroc": mean_auroc,
                 "val/mean_auprc": mean_auprc,
                 "val/mean_auroc_binary": mean_auroc_binary,
                 "val/mean_auprc_binary": mean_auprc_binary,
-                "metric": metric,
-                "metric_binary": metric_binary,
+                "val/metric": metric,
+                "val/metric_binary": metric_binary,
             })
 
             self.fabric.print(
@@ -216,21 +216,82 @@ class EEGKFoldTrainer:
                 self.fabric.print("Early Stopping because validation loss did not improve!")
                 break
 
-        self.logger.save_to_csv()
+            self.logger.save_to_csv()  # save log every epoch
 
     def test(self):
-        pass
+        model = self.model
+        state = self.fabric.load(str(Path(OUT_DIR, 'checkpoints', f'{self.model.type}_best.pkl')))
+        model.load_state_dict(state['model'])
+        test_dataloader = self.dataloaders.test_dataloader()
+        self.logger.update_flag(flag='test_metrics', epoch=None, fold=None)
+
+        model.eval()
+        test_loss = 0
+        test_pred = []
+        test_lb = []
+        test_pred_binary = []
+        test_lb_binary = []
+
+        with torch.no_grad():
+            test_bar = tqdm(enumerate(test_dataloader), total=len(test_dataloader), desc="Testing")
+            for batch_idx, batch in test_bar:
+                _, lb, pred, lb_binary, pred_binary, _ = self.base_step(model, batch_idx, batch)
+                # ONLY TEST ON THE MAIN SEGMENT
+                loss = self.loss_fn(pred[:, params.POS_IDX, :], lb[:, params.POS_IDX, :])
+                test_loss += loss.item()
+                test_pred.append(pred[:, params.POS_IDX, :-1])  # ignore the last class
+                test_lb.append(lb[:, params.POS_IDX, :-1])
+                test_pred_binary.append(pred_binary[:, params.POS_IDX, :])
+                test_lb_binary.append(lb_binary[:, params.POS_IDX, :])
+                test_bar.set_postfix({"step_loss": loss.item()})
+
+            test_loss = test_loss / len(test_dataloader)
+            self.logger.log_dict({f"test/loss": test_loss})
+
+            test_pred = self.softmax(torch.concat(test_pred, dim=0)).detach().cpu().numpy()
+            test_lb = torch.concat(test_lb, dim=0)
+            test_lb = torch.argmax(test_lb, dim=-1).detach().cpu().numpy()
+            test_auroc = auroc(test_lb, test_pred, multi_class='ovr')
+            test_auprc = auprc(test_lb, test_pred)
+
+            test_pred_binary = self.softmax(torch.concat(test_pred_binary, dim=0)).detach().cpu().numpy()
+            test_lb_binary = torch.concat(test_lb_binary, dim=0).detach().cpu().numpy()
+            test_auroc_binary = auroc(test_lb_binary, test_pred_binary)
+            test_auprc_binary = auprc(test_lb_binary, test_pred_binary)
+
+            metric = 2 * test_auroc * test_auprc / (test_auroc + test_auprc + 1e-10)
+            metric_binary = 2 * test_auroc_binary * test_auprc_binary / (test_auroc_binary + test_auprc_binary + 1e-10)
+
+            self.logger.log_dict({
+                "test/auroc": test_auroc,
+                "test/auprc": test_auprc,
+                "test/auroc_binary": test_auroc_binary,
+                "test/auprc_binary": test_auprc_binary,
+                "test/metric": metric,
+                "test/metric_binary": metric_binary,
+            })
+
+            self.fabric.print(
+                f"Test Loss {test_loss:.4f}\n"
+                f"Test Metric {metric:.4f}\n"
+                f"Test Metric Binary {metric_binary:.4f}\n"
+            )
+
+            self.logger.save_to_csv()
 
     def trainer_summary(self):
         self.fabric.print("Using device: ", self.fabric.device)
         input_shape = (params.BATCH_SIZE, 3, (params.W_OUT * params.MAX_SEQ_SIZE))
         inp = torch.ones(input_shape)
-        summary(self.models[0], inp, batch_size=params.BATCH_SIZE, show_input=True, print_summary=True)
+        model_summary = summary(self.model, inp, batch_size=params.BATCH_SIZE, show_input=True,
+                                show_hierarchical=True, show_parent_layers=True)
+        self.logger.log_model_summary(model_summary)
 
 
 if __name__ == '__main__':
     model = get_model(params.MODEL_TYPE)
     trainer = EEGKFoldTrainer(model=model, lr=params.LEARNING_RATE, n_splits=params.N_SPLITS,
                               n_epochs=params.NUM_EPOCHS, accelerator=params.ACCELERATOR, devices=params.DEVICES)
-    trainer.fit()
+    # trainer.fit()
+    trainer.test()
     # trainer.load_model()
