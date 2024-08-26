@@ -1,11 +1,7 @@
 # data
 data/dump
 
-# logs
-logs
-wandb
-
 # out
 out/checkpoints
-out/logs/wandb
-out/wandb
+out/logs
+out/figures

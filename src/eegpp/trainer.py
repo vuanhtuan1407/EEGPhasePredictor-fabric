@@ -1,7 +1,4 @@
-from pathlib import Path
-
 import torch
-import wandb
 from lightning.fabric import Fabric
 from pytorch_model_summary import summary
 from sklearn.metrics import average_precision_score as auprc
@@ -10,12 +7,11 @@ from torch import nn
 from torch.optim import Adam
 # from torchmetrics import F1Score, AUROC, AveragePrecision
 from tqdm import tqdm
-from wandb.integration.lightning.fabric import WandbLogger
 
 from out import OUT_DIR
 from src.eegpp import params
 from src.eegpp.dataloader import EEGKFoldDataLoader
-from src.eegpp.utils.callback_utils import model_checkpoint
+from src.eegpp.logger import MyLogger
 from src.eegpp.utils.general_utils import generate_normal_vector
 # from src.eegpp.models.baseline.cnn_model import CNN1DModel
 from src.eegpp.utils.model_utils import get_model
@@ -37,20 +33,13 @@ class EEGKFoldTrainer:
             # save_last=False
 
     ):
-        self.logger = WandbLogger(log_model='all', save_dir=str(Path(OUT_DIR)))
-        self.logger.experiment.config['model_type'] = params.MODEL_TYPE
-        self.logger.experiment.config['batch_size'] = params.BATCH_SIZE
-        self.logger.experiment.config['w_out'] = params.W_OUT
-
-        if callbacks is None:
-            callbacks = [model_checkpoint]
+        self.logger = MyLogger()
 
         self.fabric = Fabric(
             accelerator=accelerator,
             devices=devices,
             strategy='auto',
-            callbacks=callbacks,
-            loggers=self.logger,
+            callbacks=callbacks
         )
         self.fabric.launch()
         self.device = self.fabric.device
@@ -106,9 +95,6 @@ class EEGKFoldTrainer:
         return loss + weight_star * loss_binary
 
     def fit(self):
-        wandb.define_metric('train/epoch')
-        wandb.define_metric('train/*', step_metric='train/epoch')
-        wandb.define_metric('val/*', step_metric='train/epoch')
         for epoch in range(self.n_epochs):
             self.fabric.print(f"Epoch {epoch + 1}/{self.n_epochs}")
             epoch_loss = 0
@@ -119,6 +105,7 @@ class EEGKFoldTrainer:
             epoch_auprc_binary = 0
             for k in range(self.n_splits):
                 self.fabric.print(f"Working on fold {k + 1}/{self.n_splits}")
+                self.logger.update_epoch(epoch, fold=k)
                 model, optimizer = self.models[k], self.optimizers[k]
                 self.dataloaders.set_fold(k)
                 train_dataloader, val_dataloader = self.dataloaders.train_dataloader(), self.dataloaders.val_dataloader()
@@ -127,7 +114,6 @@ class EEGKFoldTrainer:
 
                 # TRAINING LOOP
                 model.train()
-                wandb.watch(model)
                 train_loss = 0
                 train_bar = tqdm(enumerate(train_dataloader), total=len(train_dataloader), desc="Training")
                 for batch_idx, batch in train_bar:
@@ -140,10 +126,7 @@ class EEGKFoldTrainer:
 
                 train_loss = train_loss / len(train_dataloader)
                 # train_bar.set_postfix({"epoch_loss": train_loss})
-                self.fabric.log_dict({
-                    "train/epoch": epoch,
-                    f'train/loss_fold_{k + 1}': train_loss
-                })
+                self.logger.log_dict({'train/fold_loss': train_loss})
 
                 # VALIDATION LOOP
                 model.eval()
@@ -159,8 +142,8 @@ class EEGKFoldTrainer:
                         # ONLY VALIDATE ON THE MAIN SEGMENT
                         loss = self.loss_fn(pred[:, params.POS_IDX, :], lb[:, params.POS_IDX, :])
                         val_loss += loss.item()
-                        val_pred.append(pred[:, params.POS_IDX, :])
-                        val_lb.append(lb[:, params.POS_IDX, :])
+                        val_pred.append(pred[:, params.POS_IDX, :-1])
+                        val_lb.append(lb[:, params.POS_IDX, :-1])
                         val_pred_binary.append(pred_binary[:, params.POS_IDX, :])
                         val_lb_binary.append(lb_binary[:, params.POS_IDX, :])
                         val_bar.set_postfix({"step_loss": loss.item()})
@@ -168,10 +151,7 @@ class EEGKFoldTrainer:
 
                     val_loss = val_loss / len(val_dataloader)
                     # val_bar.set_postfix({"epoch_loss": val_loss})
-                    self.fabric.log_dict({
-                        "train/epoch": epoch,
-                        f"val/loss_fold_{k + 1}": val_loss
-                    })
+                    self.logger.log_dict({f"val/fold_loss": val_loss})
 
                     if val_loss < self.best_val_loss:
                         self.best_val_loss = val_loss
@@ -187,9 +167,10 @@ class EEGKFoldTrainer:
                     epoch_loss += val_loss
 
                     val_pred = self.softmax(torch.concat(val_pred, dim=0)).detach().cpu().numpy()
-                    val_lb = self.softmax(torch.concat(val_lb, dim=0))
+                    val_lb = torch.concat(val_lb, dim=0)
                     val_lb = torch.argmax(val_lb, dim=-1).detach().cpu().numpy()
-                    epoch_auroc += auprc(val_lb, val_pred)
+                    # print(len(val_lb), len(val_pred))
+                    epoch_auroc += auroc(val_lb, val_pred, multi_class='ovr')
                     epoch_auprc += auprc(val_lb, val_pred)
 
                     val_pred_binary = self.softmax(torch.concat(val_pred_binary, dim=0)).detach().cpu().numpy()
@@ -209,8 +190,8 @@ class EEGKFoldTrainer:
             metric = 2 * mean_auroc * mean_auprc / (mean_auroc + mean_auprc + 1e-10)
             metric_binary = 2 * mean_auroc_binary * mean_auprc_binary / (mean_auroc_binary + mean_auprc_binary + 1e-10)
 
-            self.fabric.log_dict({
-                "train/epoch": epoch,
+            self.logger.update_epoch(epoch, fold=None)
+            self.logger.log_dict({
                 "val/mean_loss": mean_loss,
                 "val/mean_auroc": mean_auroc,
                 "val/mean_auprc": mean_auprc,
@@ -231,7 +212,7 @@ class EEGKFoldTrainer:
                 self.fabric.print("Early Stopping because validation loss did not improve!")
                 break
 
-        wandb.finish(quiet=True)
+        self.logger.save_to_csv()
 
     def test(self):
         pass

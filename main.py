@@ -1,16 +1,14 @@
 import argparse
 import os
 import shutil
-import time
-from pathlib import Path
 
 import torch
-import wandb
 
-from out import OUT_DIR
 from src.eegpp import params
 from src.eegpp.trainer import EEGKFoldTrainer
 from src.eegpp.utils.model_utils import get_model
+
+torch.set_float32_matmul_precision('medium')
 
 
 def parse_arguments():
@@ -30,15 +28,6 @@ def remove_all_logs():
 
 
 if __name__ == "__main__":
-    torch.set_float32_matmul_precision('medium')
-    wandb.require('core')
-    wandb.init(
-        project='EEGPhasePredictor-fabric',
-        name=f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))}',
-        dir=str(Path(OUT_DIR)),
-        settings=wandb.Settings(start_method='fork')
-    )
-
     # remove all logs
     remove_all_logs()
 
@@ -55,9 +44,3 @@ if __name__ == "__main__":
         devices=params.DEVICES,
     )
     trainer.fit()
-
-# import torch
-#
-# t = torch.randint(low=1, high=5, size=(2, 2, 2))
-# print(t.shape)
-# print(torch.argmax(t, dim=-1).shape)

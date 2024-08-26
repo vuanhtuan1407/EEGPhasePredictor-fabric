@@ -71,6 +71,7 @@ class EEGKFoldDataLoader:
             shuffle=True,
             num_workers=self.n_workers,
             pin_memory=True,
+            drop_last=True
         )
 
     def val_dataloader(self):
@@ -80,6 +81,7 @@ class EEGKFoldDataLoader:
             shuffle=False,
             num_workers=self.n_workers,
             pin_memory=True,
+            drop_last=True
         )
 
     def test_dataloader(self):
