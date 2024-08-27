@@ -19,7 +19,7 @@ def parse_arguments():
     parser.add_argument("--n_splits", type=int, default=2)
     parser.add_argument("--n_workers", type=int, default=0)
     parser.add_argument('--auto_visualize', type=bool, default=True)
-    parser.add_argument("--early_stopping", type=Optional[int], default=None)
+    parser.add_argument("--early_stopping", type=int, default=None)
     return parser.parse_args()
 
 

@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 import torch
 from lightning.fabric import Fabric
@@ -32,7 +31,7 @@ class EEGKFoldTrainer:
             accelerator='auto',
             devices='auto',
             callbacks=None,
-            early_stopping: Optional[int] = None,
+            early_stopping=None,
             # save_last=False
 
     ):
@@ -292,7 +291,9 @@ class EEGKFoldTrainer:
     def trainer_summary(self):
         self.fabric.print("Using device: ", self.fabric.device)
         if self.early_stopping is not None:
-            self.fabric.print("Using early stopping: ", self.early_stopping)
+            self.fabric.print(f"Apply early stopping: {self.early_stopping}.")
+        else:
+            self.fabric.print("Not apply early stopping.")
         input_shape = (params.BATCH_SIZE, 3, (params.W_OUT * params.MAX_SEQ_SIZE))
         inp = torch.ones(input_shape)
         model_summary = summary(get_model(self.model_type), inp, batch_size=params.BATCH_SIZE, show_input=True,
