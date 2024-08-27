@@ -16,7 +16,7 @@ def parse_arguments():
     parser.add_argument("--model_type", type=str, default="fft2c")
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--n_epochs", type=int, default=2)
+    parser.add_argument("--n_epochs", type=int, default=1)
     parser.add_argument("--n_splits", type=int, default=2)
     parser.add_argument("--n_workers", type=int, default=0)
     return parser.parse_args()
@@ -24,9 +24,8 @@ def parse_arguments():
 
 if __name__ == "__main__":
     args = parse_arguments()
-    model = get_model(args.model_type)
     trainer = EEGKFoldTrainer(
-        model=model,
+        model_type=args.model_type,
         lr=args.lr,
         batch_size=args.batch_size,
         n_splits=args.n_splits,

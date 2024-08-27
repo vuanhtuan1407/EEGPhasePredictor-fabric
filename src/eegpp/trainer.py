@@ -5,7 +5,6 @@ from lightning.fabric import Fabric
 from pytorch_model_summary import summary
 from sklearn.metrics import average_precision_score as auprc
 from sklearn.metrics import roc_auc_score as auroc
-from torch import nn
 from torch.optim import Adam
 # from torchmetrics import F1Score, AUROC, AveragePrecision
 from tqdm import tqdm
@@ -22,7 +21,7 @@ from src.eegpp.utils.model_utils import get_model
 class EEGKFoldTrainer:
     def __init__(
             self,
-            model: nn.Module,
+            model_type: str,
             lr=1e-3,
             batch_size=8,
             weight_decay=0,
@@ -47,8 +46,8 @@ class EEGKFoldTrainer:
         self.device = self.fabric.device
 
         self.softmax = torch.nn.Softmax(dim=-1)
-        self.model = model
-        self.models = [model for _ in range(n_splits)]
+        self.model_type = model_type
+        self.models = [get_model(model_type) for _ in range(n_splits)]
         self.optimizers = [Adam(model.parameters(), lr=lr, weight_decay=weight_decay) for model in self.models]
         self.dataloaders = EEGKFoldDataLoader(n_splits=n_splits, batch_size=batch_size, n_workers=n_workers)
         self.loss_fn = torch.nn.CrossEntropyLoss()
@@ -81,7 +80,6 @@ class EEGKFoldTrainer:
         x, lb, lb_binary = batch
         x = self.preprocess(x)
         pred, pred_binary = model(x)
-        # print(lb.shape, lb_binary.shape, pred.shape, pred_binary.shape)
         loss = self.compute_loss(pred, lb, pred_binary, lb_binary)
         return x, lb, pred, lb_binary, pred_binary, loss
 
@@ -163,7 +161,7 @@ class EEGKFoldTrainer:
                             "model": model,
                             "optimizer": optimizer,
                         }
-                        self.fabric.save(f'{OUT_DIR}/checkpoints/{self.model.type}_best.pkl', state_dict)
+                        self.fabric.save(f'{OUT_DIR}/checkpoints/{self.model_type}_best.pkl', state_dict)
 
                     epoch_loss += val_loss
 
@@ -219,10 +217,12 @@ class EEGKFoldTrainer:
             self.logger.save_to_csv()  # save log every epoch
 
     def test(self):
-        model = self.model
-        state = self.fabric.load(str(Path(OUT_DIR, 'checkpoints', f'{self.model.type}_best.pkl')))
+        model = get_model(self.model_type)
+        state = self.fabric.load(str(Path(OUT_DIR, 'checkpoints', f'{self.model_type}_best.pkl')))
         model.load_state_dict(state['model'])
+        model = self.fabric.setup_module(model, move_to_device=True)
         test_dataloader = self.dataloaders.test_dataloader()
+        test_dataloader = self.fabric.setup_dataloaders(test_dataloader)
         self.logger.update_flag(flag='test_metrics', epoch=None, fold=None)
 
         model.eval()
@@ -283,14 +283,13 @@ class EEGKFoldTrainer:
         self.fabric.print("Using device: ", self.fabric.device)
         input_shape = (params.BATCH_SIZE, 3, (params.W_OUT * params.MAX_SEQ_SIZE))
         inp = torch.ones(input_shape)
-        model_summary = summary(self.model, inp, batch_size=params.BATCH_SIZE, show_input=True,
+        model_summary = summary(get_model(self.model_type), inp, batch_size=params.BATCH_SIZE, show_input=True,
                                 show_hierarchical=True, show_parent_layers=True)
         self.logger.log_model_summary(model_summary)
 
 
 if __name__ == '__main__':
-    model = get_model(params.MODEL_TYPE)
-    trainer = EEGKFoldTrainer(model=model, lr=params.LEARNING_RATE, n_splits=params.N_SPLITS,
+    trainer = EEGKFoldTrainer(model_type=params.MODEL_TYPE, lr=params.LEARNING_RATE, n_splits=params.N_SPLITS,
                               n_epochs=params.NUM_EPOCHS, accelerator=params.ACCELERATOR, devices=params.DEVICES)
     # trainer.fit()
     trainer.test()
