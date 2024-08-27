@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 import torch
 from lightning.fabric import Fabric
@@ -31,6 +32,7 @@ class EEGKFoldTrainer:
             accelerator='auto',
             devices='auto',
             callbacks=None,
+            early_stopping: Optional[int] = None,
             # save_last=False
 
     ):
@@ -63,7 +65,7 @@ class EEGKFoldTrainer:
 
         self.best_val_loss = 1e6
         self.best_criteria = 1e6
-        self.early_stopping = 3
+        self.early_stopping = early_stopping
 
         # print trainer summary
         self.trainer_summary()
@@ -205,23 +207,24 @@ class EEGKFoldTrainer:
                 f"Metric Binary {metric_binary:.4f}"
             )
 
-            if params.CRITERIA == 'metric':
-                criteria = metric
-            elif params.CRITERIA == 'metric_binary':
-                criteria = metric_binary
-            else:
-                criteria = mean_val_loss
-
-            if criteria < self.best_criteria:
-                self.best_criteria = criteria
-            else:
-                self.early_stopping -= 1
-
-            if self.early_stopping <= 0:
-                self.fabric.print("Early Stopping because criteria did not improve!\n")
-                break
-
             self.logger.save_to_csv()  # save log every epoch
+
+            if self.early_stopping is not None:
+                if params.CRITERIA == 'metric':
+                    criteria = - metric  # change to min by taking opposite value
+                elif params.CRITERIA == 'metric_binary':
+                    criteria = - metric_binary  # change to min by taking opposite value
+                else:
+                    criteria = mean_val_loss
+
+                if criteria < self.best_criteria:
+                    self.best_criteria = criteria
+                else:
+                    self.early_stopping -= 1
+
+                if self.early_stopping <= 0:
+                    self.fabric.print("Early Stopping because criteria did not improve!\n")
+                    break
 
     def test(self):
         model = get_model(self.model_type)
@@ -288,6 +291,8 @@ class EEGKFoldTrainer:
 
     def trainer_summary(self):
         self.fabric.print("Using device: ", self.fabric.device)
+        if self.early_stopping is not None:
+            self.fabric.print("Using early stopping: ", self.early_stopping)
         input_shape = (params.BATCH_SIZE, 3, (params.W_OUT * params.MAX_SEQ_SIZE))
         inp = torch.ones(input_shape)
         model_summary = summary(get_model(self.model_type), inp, batch_size=params.BATCH_SIZE, show_input=True,

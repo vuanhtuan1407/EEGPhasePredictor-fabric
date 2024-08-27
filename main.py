@@ -1,4 +1,5 @@
 import argparse
+from typing import Optional
 
 import torch
 
@@ -17,8 +18,8 @@ def parse_arguments():
     parser.add_argument("--n_epochs", type=int, default=1)
     parser.add_argument("--n_splits", type=int, default=2)
     parser.add_argument("--n_workers", type=int, default=0)
-    parser.add_argument("--seed", type=int, default=0)
     parser.add_argument('--auto_visualize', type=bool, default=True)
+    parser.add_argument("--early_stopping", type=Optional[int], default=None)
     return parser.parse_args()
 
 
@@ -33,6 +34,7 @@ if __name__ == "__main__":
         n_workers=args.n_workers,
         accelerator=params.ACCELERATOR,
         devices=params.DEVICES,
+        early_stopping=args.early_stopping,
     )
     trainer.fit()
     trainer.test()
