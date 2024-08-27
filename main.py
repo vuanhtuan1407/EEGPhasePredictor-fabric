@@ -1,12 +1,10 @@
 import argparse
-import os
-import shutil
 
 import torch
 
 from src.eegpp import params
 from src.eegpp.trainer import EEGKFoldTrainer
-from src.eegpp.utils.model_utils import get_model
+from src.eegpp.visualization import visualize_results
 
 torch.set_float32_matmul_precision('medium')
 
@@ -19,6 +17,8 @@ def parse_arguments():
     parser.add_argument("--n_epochs", type=int, default=1)
     parser.add_argument("--n_splits", type=int, default=2)
     parser.add_argument("--n_workers", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument('--auto_visualize', type=bool, default=True)
     return parser.parse_args()
 
 
@@ -36,3 +36,6 @@ if __name__ == "__main__":
     )
     trainer.fit()
     trainer.test()
+
+    if args.auto_visualize:
+        visualize_results()

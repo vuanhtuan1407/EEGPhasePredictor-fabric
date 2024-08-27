@@ -62,7 +62,7 @@ class EEGKFoldTrainer:
         # self.auprc_binary = AveragePrecision(task='multiclass', num_classes=2).to(self.device)
 
         self.best_val_loss = 1e6
-        self.best_mean_val_loss = 1e6
+        self.best_criteria = 1e6
         self.early_stopping = 3
 
         # print trainer summary
@@ -202,16 +202,23 @@ class EEGKFoldTrainer:
                 f"Epoch {epoch + 1}/{self.n_epochs}\n"
                 f"Mean Validation Loss {mean_val_loss:.4f}\n"
                 f"Metric {metric:.4f}\n"
-                f"Metric Binary {metric_binary:.4f}\n"
+                f"Metric Binary {metric_binary:.4f}"
             )
 
-            if mean_val_loss < self.best_mean_val_loss:
-                self.best_mean_val_loss = mean_val_loss
+            if params.CRITERIA == 'metric':
+                criteria = metric
+            elif params.CRITERIA == 'metric_binary':
+                criteria = metric_binary
+            else:
+                criteria = mean_val_loss
+
+            if criteria < self.best_criteria:
+                self.best_criteria = criteria
             else:
                 self.early_stopping -= 1
 
             if self.early_stopping <= 0:
-                self.fabric.print("Early Stopping because validation loss did not improve!")
+                self.fabric.print("Early Stopping because criteria did not improve!\n")
                 break
 
             self.logger.save_to_csv()  # save log every epoch
@@ -274,7 +281,7 @@ class EEGKFoldTrainer:
             self.fabric.print(
                 f"Test Loss {test_loss:.4f}\n"
                 f"Test Metric {metric:.4f}\n"
-                f"Test Metric Binary {metric_binary:.4f}\n"
+                f"Test Metric Binary {metric_binary:.4f}"
             )
 
             self.logger.save_to_csv()

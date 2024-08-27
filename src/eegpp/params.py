@@ -1,5 +1,4 @@
 BATCH_SIZE = 8
-LOG_DIR = 'logging'
 ENABLE_LOGGING = False
 ENABLE_CHECKPOINTING = True
 DEVICES = 'auto'
@@ -16,6 +15,7 @@ LEARNING_RATE = 1e-3
 RD_SEED = 42
 N_SPLITS = 5
 POS_IDX = int(W_OUT / 2)
+CRITERIA = 'metric'  # criteria can be ['val_loss', 'metric', 'metric_binary']
 
 # print(POS_IDX)
 
