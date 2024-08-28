@@ -22,7 +22,7 @@ class MyLogger(object):
     def update_flag(self, flag, epoch: Optional[int] = None, fold: Optional[int] = None):
         if flag == 'fit':
             if epoch is None or fold is None:
-                raise ValueError('Epoch or fold must be set')
+                raise ValueError('Epoch and fold must be set')
             else:
                 self.fit_state_dict['epoch'].append(epoch)
                 self.fit_state_dict['fold'].append(fold)
@@ -37,6 +37,10 @@ class MyLogger(object):
     def log_model_summary(self, model_summary):
         with open(os.path.join(self.log_dir, 'model_summary.log'), 'w') as f:
             f.write(model_summary)
+
+    def log_error(self, error):
+        with open(os.path.join(self.log_dir, 'error.log'), 'w') as f:
+            f.write(error)
 
     def log_dict(self, state: dict):
         if self.flag == 'fit':

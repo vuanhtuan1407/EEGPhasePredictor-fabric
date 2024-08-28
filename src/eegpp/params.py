@@ -14,8 +14,7 @@ DATASET_FILE_IDX = 'all'
 LEARNING_RATE = 1e-3
 RD_SEED = 42
 N_SPLITS = 5
-POS_IDX = int(W_OUT / 2)
-CRITERIA = 'metric'  # criteria can be ['val_loss', 'metric', 'metric_binary']
+POS_IDX = int(W_OUT / 2)  # position index of the main segment
+CRITERIA = 'f1x'  # criteria can be ['mean_val_loss', 'mean_val_loss_binary', 'f1x', 'f1x_binary']
 
 # print(POS_IDX)
-

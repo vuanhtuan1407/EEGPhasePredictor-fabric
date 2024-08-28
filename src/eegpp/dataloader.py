@@ -34,6 +34,7 @@ class EEGKFoldDataLoader:
         self.setup()
 
     def setup(self):
+        print("Preparing data...")
         train_val_datasets, test_datasets = [[], []]
         for idx in self.dataset_files:
             dump_file = DUMP_DATA_FILES['train'][idx]

@@ -47,7 +47,7 @@ def get_path_slash():
 
 def generate_normal_vector(length, mean=0, std=1.5):
     if length % 2 == 0:
-        print("Length must be odd. Automatic increase length by 1.")
+        print("Length of segment weight loss vector must be odd. Automatic increase length by 1.")
         length += 1
 
     vector = np.linspace(-(length - 1) / 2, (length - 1) / 2, length)

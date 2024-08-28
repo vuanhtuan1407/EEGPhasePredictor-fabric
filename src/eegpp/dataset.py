@@ -47,7 +47,7 @@ class EEGDataset(Dataset):
                     lbs.append(self._getlb_idx(i))
                     lbs_binary.append(self._getlb_binary_idx(i))
             elif self.contain_side == 'both':
-                pos_shift = int((self.w_out - 1) / 2)
+                pos_shift = params.POS_IDX
                 for i in range(idx - pos_shift, idx + pos_shift + 1):
                     seqs.append(self._getseq_idx(i))
                     lbs.append(self._getlb_idx(i))
