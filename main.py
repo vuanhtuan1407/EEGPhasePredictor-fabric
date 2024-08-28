@@ -10,12 +10,12 @@ def parse_arguments():
     parser.add_argument("--model_type", type=str, default="cnn1d2c")
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=10)
-    parser.add_argument("--n_epochs", type=int, default=1)
+    parser.add_argument("--n_epochs", type=int, default=2)
     parser.add_argument("--n_splits", type=int, default=2)
     parser.add_argument("--n_workers", type=int, default=0)
     parser.add_argument('--auto_visualize', type=bool, default=True)
     parser.add_argument("--early_stopping", type=int, default=None)
-    parser.add_argument("--export_torchscript", type=bool, default=True)
+    parser.add_argument("--export_torchscript", type=bool, default=False)
     return parser.parse_args()
 
 
@@ -34,10 +34,10 @@ if __name__ == "__main__":
         export_torchscript=args.export_torchscript,
     )
     trainer.fit()
-    trainer.test()
-
-    if args.auto_visualize:
-        visualize_results()
+    # trainer.test()
+    #
+    # if args.auto_visualize:
+    #     visualize_results()
     #
     # import torch
     # module1 = torch.nn.Linear(2, 1)
