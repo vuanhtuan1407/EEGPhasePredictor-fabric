@@ -30,7 +30,7 @@ class EEGKFoldDataLoader:
         self.n_splits = n_splits
         self.n_workers = n_workers
         self.batch_size = batch_size
-        self.generator = torch.Generator().manual_seed(params.RD_SEED)
+        self.generator = torch.Generator()
         self.setup()
 
     def setup(self):

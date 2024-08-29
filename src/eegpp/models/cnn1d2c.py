@@ -111,13 +111,13 @@ class CNN1D2CModel(nn.Module):
         out = torch.concat(xis, dim=-1)
         outx = out
         out = self.fc2(out)
-        out = out.reshape(-1, self.window_size, self.n_class)
+        out = out.reshape(out.shape[0], self.window_size, -1)
         # out2 = torch.transpose(out, 1, 2)
 
         tmpx = torch.concat([outx, out.reshape(out.shape[0], -1)], dim=1)
         # print("TMPX: ", tmpx.shape)
         out2 = self.binary_cls_join(tmpx)
         # print("OUT2 cls join", out2.shape)
-        out2 = out2.reshape((-1, self.window_size, 2))
+        out2 = out2.reshape((out2.shape[0], self.window_size, -1))
         # print("Final out2: ", out2.shape)
         return out, out2

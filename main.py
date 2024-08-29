@@ -8,7 +8,7 @@ from src.eegpp.visualization import visualize_results
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_type", type=str, default="cnn1d2c")
-    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--batch_size", type=int, default=10)
     parser.add_argument("--n_epochs", type=int, default=2)
     parser.add_argument("--n_splits", type=int, default=2)
@@ -34,11 +34,11 @@ if __name__ == "__main__":
         export_torchscript=args.export_torchscript,
     )
     trainer.fit()
-    # trainer.test()
-    #
-    # if args.auto_visualize:
-    #     visualize_results()
-    #
+    trainer.test()
+
+    if args.auto_visualize:
+        visualize_results()
+
     # import torch
     # module1 = torch.nn.Linear(2, 1)
     # module2 = torch.nn.Linear(2, 1)
