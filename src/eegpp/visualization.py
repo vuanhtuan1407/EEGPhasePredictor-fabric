@@ -28,7 +28,7 @@ def visualize_fit_process():
 
     # VALIDATION CRITERIA
     sns.lineplot(ax=ax[1], data=df, x='epoch', y=f'val/epoch_{params.CRITERIA}', color='orange')
-    ax[1].set_title("Validation Criteria")
+    ax[1].set_title(f"Validation Criteria ({params.CRITERIA.upper()})")
     ax[1].set_xlabel('Epoch')
     ax[1].set_ylabel('Value')
     ax[1].set_xticks(np.arange(0, max(df['epoch'].unique()) + 1))

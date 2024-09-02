@@ -57,7 +57,7 @@ class EEGKFoldTrainer:
         self.loss_fn_train = torch.nn.CrossEntropyLoss(ignore_index=-1)
         w_binary = torch.tensor([0.1, 1], dtype=torch.float32, device=self.device)
         self.loss_fn_train_binary = torch.nn.CrossEntropyLoss(weight=w_binary)
-        self.loss_fn_val = torch.nn.CrossEntropyLoss()
+        self.loss_fn_eval = torch.nn.CrossEntropyLoss()
         self.n_epochs = n_epochs
         self.n_splits = n_splits
         self.export_torchscript = export_torchscript
@@ -135,7 +135,7 @@ class EEGKFoldTrainer:
                     for batch_idx, batch in val_bar:
                         _, lb, pred, lb_binary, pred_binary, _ = self.base_step(model, batch_idx, batch)
                         # ONLY VALIDATE ON THE MAIN SEGMENT
-                        loss = self.loss_fn_val(pred[:, params.POS_IDX, :-1], lb[:, params.POS_IDX, :-1])
+                        loss = self.loss_fn_eval(pred[:, params.POS_IDX, :-1], lb[:, params.POS_IDX, :-1])
                         val_pred.append(pred[:, params.POS_IDX, :-1])  # ignore the last class
                         val_lb.append(lb[:, params.POS_IDX, :-1])
                         val_pred_binary.append(pred_binary[:, params.POS_IDX, :])
@@ -148,8 +148,8 @@ class EEGKFoldTrainer:
                     val_lb_binary = torch.concat(val_lb_binary, dim=0)
 
                     # calculate val loss and val loss binary
-                    val_loss = self.loss_fn_val(val_pred, val_lb).item()
-                    val_loss_binary = self.loss_fn_val(val_pred_binary, val_lb_binary).item()
+                    val_loss = self.loss_fn_eval(val_pred, val_lb).item()
+                    val_loss_binary = self.loss_fn_eval(val_pred_binary, val_lb_binary).item()
 
                     # calculate val AUROC and AUPRC
                     val_pred = self.softmax(val_pred).detach().cpu().numpy()
@@ -256,7 +256,7 @@ class EEGKFoldTrainer:
             for batch_idx, batch in test_bar:
                 _, lb, pred, lb_binary, pred_binary, _ = self.base_step(model, batch_idx, batch)
                 # ONLY TEST ON THE MAIN SEGMENT
-                loss = self.loss_fn_val(pred[:, params.POS_IDX, :-1], lb[:, params.POS_IDX, :-1])
+                loss = self.loss_fn_eval(pred[:, params.POS_IDX, :-1], lb[:, params.POS_IDX, :-1])
                 test_pred.append(pred[:, params.POS_IDX, :-1])  # ignore the last class
                 test_lb.append(lb[:, params.POS_IDX, :-1])
                 test_pred_binary.append(pred_binary[:, params.POS_IDX, :])
@@ -268,8 +268,8 @@ class EEGKFoldTrainer:
             test_pred_binary = torch.concat(test_pred_binary, dim=0)
             test_lb_binary = torch.concat(test_lb_binary, dim=0)
 
-            test_loss = self.loss_fn_val(test_pred, test_lb).item()
-            test_loss_binary = self.loss_fn_val(test_pred_binary, test_lb_binary).item()
+            test_loss = self.loss_fn_eval(test_pred, test_lb).item()
+            test_loss_binary = self.loss_fn_eval(test_pred_binary, test_lb_binary).item()
             self.logger.log_dict({
                 "test/loss": test_loss,
                 "test/loss_binary": test_loss_binary,

@@ -7,7 +7,7 @@ from src.eegpp.visualization import visualize_results
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type", type=str, default="cnn1d2c")
+    parser.add_argument("--model_type", type=str, default="fft2c")
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=10)
     parser.add_argument("--n_epochs", type=int, default=2)
