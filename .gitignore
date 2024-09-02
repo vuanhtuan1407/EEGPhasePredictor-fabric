@@ -6,6 +6,3 @@ data/raw
 out/checkpoints
 out/logs
 out/figures
-
-# backup
-src/eegpp/trainer_backup.py
