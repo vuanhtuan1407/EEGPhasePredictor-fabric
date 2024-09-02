@@ -1,5 +1,6 @@
 # data
 data/dump
+data/raw
 
 # out
 out/checkpoints

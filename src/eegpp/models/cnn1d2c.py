@@ -37,13 +37,13 @@ class CNN1D2CModel(nn.Module):
         self.flag = flag
         self.chain1_layers = nn.ModuleList()
         self.chain2_layers = nn.ModuleList()
-        # self.chains = nn.ModuleList([self.chain1_layers, self.chain2_layers])
-        self.chains = [self.chain1_layers, self.chain2_layers]  # TorchScript can't convert `list`
+        self.chains = nn.ModuleList([self.chain1_layers, self.chain2_layers])
+        # self.chains = [self.chain1_layers, self.chain2_layers]  # TorchScript can't convert `list`
         self.out_collapsed = out_collapsed
 
         base_dim = 1536
 
-        for i in range(2):
+        for chain in self.chains:
             # chain = self.chains[i]
             layer1 = nn.Sequential(nn.Dropout(0.1),
                                    nn.Conv1d(1, n_base * 3, kernel_size=11, stride=4, padding=0),
@@ -75,15 +75,15 @@ class CNN1D2CModel(nn.Module):
                                    nn.LeakyReLU(),
                                    BiMaxPooling1D(kernel_size=3, stride=2)
                                    )
-            self.chains[i].append(layer1)
-            self.chains[i].append(layer2)
-            self.chains[i].append(layer3)
-            self.chains[i].append(layer4)
-            self.chains[i].append(layer5)
+            chain.append(layer1)
+            chain.append(layer2)
+            chain.append(layer3)
+            chain.append(layer4)
+            chain.append(layer5)
 
             # self.fc1 = nn.Sequential(nn.Dropout(0.1), nn.Linear(2304, 320), nn.ReLU())
             fc1 = nn.Sequential(nn.Dropout(0.1), nn.Linear(base_dim * self.flag, 320), nn.LeakyReLU())
-            self.chains[i].append(fc1)
+            chain.append(fc1)
             # self.fc1 = nn.Sequential(nn.Dropout(0.1), nn.Linear(1536, 320), nn.ReLU())
 
             # self.fc1 = nn.Sequential(nn.Dropout(0.1), nn.Linear(768, 320), nn.ReLU())
@@ -97,12 +97,12 @@ class CNN1D2CModel(nn.Module):
     def forward(self, x):
         # print("X", x.shape)
         xis = []
-        for i in range(2):
+        for i, chain in enumerate(self.chains):
             xi = x[:, i, :]
             xi = torch.unsqueeze(xi, 1)
             # xi = torch.squeeze(xi, 2)  # What does this line mean?
-            for j, jlayer in enumerate(self.chains[i]):
-                if j < len(self.chains[i]) - 1:
+            for j, jlayer in enumerate(chain):
+                if j < len(chain) - 1:
                     xi = jlayer(xi)
                 else:
                     xi = xi.reshape(xi.size(0), -1)

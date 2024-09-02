@@ -2,18 +2,19 @@ import os
 from pathlib import Path
 
 DATA_DIR = os.path.abspath(os.path.dirname(__file__))
+RAW_DATA_DIR = os.path.join(DATA_DIR, 'raw')
 DUMP_DATA_DIR = os.path.join(DATA_DIR, 'dump')
 
 SEQ_FILES = [
-    str(Path(DATA_DIR, "raw_K3_EEG3_11h.txt")),
-    str(Path(DATA_DIR, "raw_RS2_EEG1_23 hr.txt")),
-    str(Path(DATA_DIR, "raw_S1_EEG1_23 hr.txt")),
+    str(Path(RAW_DATA_DIR, "raw_K3_EEG3_11h.txt")),
+    str(Path(RAW_DATA_DIR, "raw_RS2_EEG1_23 hr.txt")),
+    str(Path(RAW_DATA_DIR, "raw_S1_EEG1_23 hr.txt")),
 ]
 
 LABEL_FILES = [
-    str(Path(DATA_DIR, "K3_EEG3_11h.txt")),
-    str(Path(DATA_DIR, "RS2_EEG1_23 hr.txt")),
-    str(Path(DATA_DIR, "S1_EEG1_23 hr.txt")),
+    str(Path(RAW_DATA_DIR, "K3_EEG3_11h.txt")),
+    str(Path(RAW_DATA_DIR, "RS2_EEG1_23 hr.txt")),
+    str(Path(RAW_DATA_DIR, "S1_EEG1_23 hr.txt")),
 ]
 
 DUMP_DATA_FILES = {

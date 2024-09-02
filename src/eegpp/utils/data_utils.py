@@ -13,7 +13,7 @@ LABEL_DICT = {0: "W", 1: "W*", 2: "NR", 3: "NR*", 4: "R", 5: "R*", -1: "others"}
 
 PATH_SLASH = get_path_slash()
 
-INF_V = -1e6
+INF_V = 1e6
 
 
 def get_lb_idx(lb_text):
