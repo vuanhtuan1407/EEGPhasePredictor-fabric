@@ -5,6 +5,7 @@ DEVICES = 'auto'
 ACCELERATOR = 'auto'
 NUM_EPOCHS = 10
 MAX_SEQ_SIZE = 1024
+NUM_QUERIES = 10
 NUM_CLASSES = 7  # 6 standard + 1 other
 MODEL_TYPE = 'fft2c'
 RESUME_CKPT = False

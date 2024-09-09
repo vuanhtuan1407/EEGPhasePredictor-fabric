@@ -1,8 +1,7 @@
 # import joblib
 
 import joblib
-import torch
-from torch.utils.data import random_split
+import numpy as np
 from tqdm import tqdm
 
 from data import SEQ_FILES, LABEL_FILES, DUMP_DATA_FILES
@@ -195,18 +194,30 @@ def load_lbs(data_files=LABEL_FILES):
     return all_start_ms, all_lbs
 
 
-def split_dataset(dataset, train_val_test_rate: list[int] = [0.7, 0.1, 0.2], generator=None):
-    if not generator:
-        generator = torch.Generator().manual_seed(0)
-    if sum(train_val_test_rate) != 1.0:
-        raise ValueError('train + val + test must be == 1')
-    else:
-        train_set, val_set, test_set = random_split(dataset, train_val_test_rate, generator=generator)
-        return train_set, val_set, test_set
+def create_new_dataset_objdet():
+    all_start_ms, all_lbs = load_lbs()
+    all_transfer_ms = []
+    for j, lbs in enumerate(all_lbs):
+        start_ms = all_start_ms[j]
+        transfer_ms = []
+        for i in range(len(lbs) - 1):
+            lb_i = lbs[i]
+            lb_ii = lbs[i + 1]
+            # c1 = lb_i % 2 == 0 and lb_ii % 2 == 0 and lb_i != lb_ii and lb_i != -1 and lb_ii != -1
+            # c2 = lb_i != lb_ii and lb_i != -1 and lb_ii != -1
+            c3 = lb_i != -1 and lb_ii != -1 and abs(lb_i - lb_ii) > 1
+            if c3:
+                transfer_ms.append(start_ms[i + 1])
+        print(np.array(transfer_ms).shape)
+        all_transfer_ms.append(transfer_ms)
+
+    # print(all_transfer_ms)
+    return all_transfer_ms
 
 
 if __name__ == '__main__':
     # os.makedirs(DUMP_DATA_DIR, exist_ok=True)
-    dump_seq_with_labels()
+    # dump_seq_with_labels()
     # load_seq_only(step_ms=4000)
     # load_seq_with_labels()
+    create_new_dataset_objdet()

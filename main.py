@@ -7,7 +7,7 @@ from src.eegpp.visualization import visualize_results
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type", type=str, default="fft2c")
+    parser.add_argument("--model_type", type=str, default="transformer")
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=10)
     parser.add_argument("--n_epochs", type=int, default=2)
@@ -15,7 +15,7 @@ def parse_arguments():
     parser.add_argument("--n_workers", type=int, default=0)
     parser.add_argument('--auto_visualize', type=bool, default=True)
     parser.add_argument("--early_stopping", type=int, default=None)
-    parser.add_argument("--export_torchscript", type=bool, default=True)
+    parser.add_argument("--export_torchscript", type=bool, default=False)
     return parser.parse_args()
 
 

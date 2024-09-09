@@ -14,7 +14,7 @@ from src.eegpp import params
 from src.eegpp.dataloader import EEGKFoldDataLoader
 from src.eegpp.logger import MyLogger
 from src.eegpp.utils.general_utils import generate_normal_vector
-from src.eegpp.utils.model_utils import get_model
+from src.eegpp.utils.model_utils import get_model, freeze_parameters, unfreeze_parameters
 
 torch.set_float32_matmul_precision('medium')
 
@@ -111,6 +111,7 @@ class EEGKFoldTrainer:
 
                 # TRAINING LOOP
                 model.train()
+                unfreeze_parameters(model)
                 train_loss = 0
                 train_bar = tqdm(enumerate(train_dataloader), total=len(train_dataloader), desc="Training")
                 for batch_idx, batch in train_bar:
@@ -131,6 +132,7 @@ class EEGKFoldTrainer:
                 val_lb_binary = []
                 val_pred_binary = []
                 with torch.no_grad():
+                    freeze_parameters(model)
                     val_bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader), desc="Validation")
                     for batch_idx, batch in val_bar:
                         _, lb, pred, lb_binary, pred_binary, _ = self.base_step(model, batch_idx, batch)
@@ -252,6 +254,7 @@ class EEGKFoldTrainer:
         test_pred_binary = []
         test_lb_binary = []
         with torch.no_grad():
+            freeze_parameters(model)
             test_bar = tqdm(enumerate(test_dataloader), total=len(test_dataloader), desc="Testing")
             for batch_idx, batch in test_bar:
                 _, lb, pred, lb_binary, pred_binary, _ = self.base_step(model, batch_idx, batch)
