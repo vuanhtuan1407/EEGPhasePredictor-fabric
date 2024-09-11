@@ -175,6 +175,7 @@ class TransformerModel(nn.Module):
         x = self.input_embedding(x)
         x = self.positional_encoding(x)
         x = self.transformer_encoder(x)
+        # out = x
         obj_queries = torch.zeros(x.size(0), params.NUM_QUERIES, self.config['d_model'], device=x.device)
         out = self.transformer_decoder(obj_queries, x)
         out = torch.mean(out, dim=1)

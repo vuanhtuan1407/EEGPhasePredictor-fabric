@@ -1,0 +1,10 @@
+num_chains: 3
+n_fft: 1024
+win_length: 1024
+hop_length: 512
+return_complex: True
+normalized: True
+dropout: 0.1
+nhead: 4
+dim_feedforward: 2048
+num_layers: 1

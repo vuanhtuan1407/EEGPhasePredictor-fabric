@@ -3,11 +3,10 @@ from pathlib import Path
 import numpy as np
 import torch
 from lightning.fabric import Fabric, seed_everything
-from pytorch_model_summary import summary
-# from torchsummary import summary
 from sklearn.metrics import average_precision_score as auprc
 from sklearn.metrics import roc_auc_score as auroc
 from torch.optim import Adam
+from torchinfo import summary
 from tqdm import tqdm
 
 from out import OUT_DIR
@@ -321,12 +320,9 @@ class EEGKFoldTrainer:
             self.logger.save_to_csv()
 
     def trainer_summary(self):
-        input_shape = (self.batch_size, 3, (params.W_OUT * params.MAX_SEQ_SIZE))
-        inp = torch.ones(input_shape)
-        model_summary = summary(get_model(self.model_type), inp, batch_size=self.batch_size, show_input=True,
-                                show_hierarchical=True, show_parent_layers=True)
-        # input_size = (3, (params.W_OUT * params.MAX_SEQ_SIZE))
-        # model_summary = summary(model=get_model(self.model_type), input_size=input_size, batch_size=self.batch_size, device='cpu')
+        input_size = (self.batch_size, 3, (params.W_OUT * params.MAX_SEQ_SIZE))
+        input_data = torch.ones(input_size)
+        model_summary = summary(model=get_model(self.model_type), input_data=input_data, verbose=0)
         self.logger.log_model_summary(model_summary)
 
     def export_to_torchscript(self):

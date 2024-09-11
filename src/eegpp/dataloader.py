@@ -111,8 +111,7 @@ class EEGKFoldDataLoader:
 
 
 if __name__ == '__main__':
-    eeg_data_loader = EEGKFoldDataLoader()
-    eeg_data_loader.set_fold(0)
+    pass
     # dataloader = eeg_data_loader.train_dataloader()
     # for batch in dataloader:
     #     x, _, _ = batch

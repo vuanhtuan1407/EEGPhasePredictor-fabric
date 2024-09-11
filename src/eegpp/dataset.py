@@ -63,9 +63,13 @@ class EEGDataset(Dataset):
             emg = torch.zeros(self.segment_length, dtype=torch.float32)
             mot = torch.zeros(self.segment_length, dtype=torch.float32)
         else:
-            eeg = torch.tensor(self.eeg[idx], dtype=torch.float32) / self.mxs[0]
-            emg = torch.tensor(self.emg[idx], dtype=torch.float32) / self.mxs[1]
-            mot = torch.tensor(self.mot[idx], dtype=torch.float32) / self.mxs[2]
+            # eeg = torch.tensor(self.eeg[idx], dtype=torch.float32) / self.mxs[0]
+            # emg = torch.tensor(self.emg[idx], dtype=torch.float32) / self.mxs[1]
+            # mot = torch.tensor(self.mot[idx], dtype=torch.float32) / self.mxs[2]
+
+            eeg = torch.tensor(self.eeg[idx], dtype=torch.float32)
+            emg = torch.tensor(self.emg[idx], dtype=torch.float32)
+            mot = torch.tensor(self.mot[idx], dtype=torch.float32)
 
         return torch.stack([eeg, emg, mot])
 
@@ -94,3 +98,4 @@ class EEGDataset(Dataset):
                 else:
                     lb_binary[1] = 1.0
         return lb_binary
+

@@ -7,19 +7,19 @@ from src.eegpp.visualization import visualize_results
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type", type=str, default="transformer")
-    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--model_type", type=str, default="stftcnn1dnc")
+    parser.add_argument("--lr", type=float, default=5e-4)
     parser.add_argument("--batch_size", type=int, default=10)
     parser.add_argument("--n_epochs", type=int, default=2)
     parser.add_argument("--n_splits", type=int, default=2)
     parser.add_argument("--n_workers", type=int, default=0)
     parser.add_argument('--auto_visualize', type=bool, default=True)
     parser.add_argument("--early_stopping", type=int, default=None)
-    parser.add_argument("--export_torchscript", type=bool, default=False)
+    parser.add_argument("--export_torchscript", type=bool, default=True)
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def run():
     args = parse_arguments()
     trainer = EEGKFoldTrainer(
         model_type=args.model_type,
@@ -38,3 +38,16 @@ if __name__ == "__main__":
 
     if args.auto_visualize:
         visualize_results()
+
+
+if __name__ == "__main__":
+    run()
+
+    # import torch
+    #
+    # t = torch.rand(2, 5120)
+    # window = torch.hamming_window(2048)
+    # rf = torch.fft.rfft(t)
+    # rs = torch.stft(t, n_fft=2048, win_length=2048, hop_length=512, normalized=True, return_complex=True, window=window)
+    # rt = torch.sqrt(rs.real ** 2 + rs.imag ** 2)
+    # print(rt, rt.shape)

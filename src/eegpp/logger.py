@@ -29,11 +29,11 @@ class MyLogger(object):
         self.flag = flag
 
     def log_model_summary(self, model_summary):
-        with open(os.path.join(self.log_dir, 'model_summary.log'), 'w') as f:
-            f.write(model_summary)
+        with open(os.path.join(self.log_dir, 'model_summary.log'), 'w', encoding='utf-8') as f:
+            f.write(str(model_summary))
 
     def log_error(self, error):
-        with open(os.path.join(self.log_dir, 'error.log'), 'w') as f:
+        with open(os.path.join(self.log_dir, 'error.log'), 'w', encoding='utf-8') as f:
             f.write(error)
 
     def log_dict(self, state: dict):
