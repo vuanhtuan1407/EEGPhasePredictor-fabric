@@ -148,11 +148,11 @@ class STFTTransnCModel(nn.Module):
             chain.add_module('fc', fc)
 
         self.classifier = FC(
-            in_dim=out_dim * 2,
+            in_dim=out_dim * num_chains,
             out_dim=params.W_OUT * len(LABEL_DICT),
         )
         self.classifier_binary = FC(
-            in_dim=out_dim * 2 + params.W_OUT * len(LABEL_DICT),
+            in_dim=out_dim * num_chains + params.W_OUT * len(LABEL_DICT),
             out_dim=params.W_OUT * 2,
         )
 
