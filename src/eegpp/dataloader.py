@@ -1,15 +1,24 @@
+import time
+
 import numpy as np
 import torch
 from sklearn.model_selection import KFold
-from torch.utils.data import Subset, ConcatDataset, DataLoader, random_split
+from torch.utils.data import Subset, ConcatDataset, DataLoader, random_split, Sampler, RandomSampler
 
 from data import DUMP_DATA_FILES
 from src.eegpp import params
 from src.eegpp.dataset import EEGDataset
 
-"""
-    Can not use train/val/test in KFold. Just use train/val or train/test
-"""
+
+class EEGKFoldSampler(Sampler):
+    def __init__(self, dataset, k_fold):
+        super().__init__()
+
+    def __iter__(self):
+        pass
+
+    def __len__(self):
+        pass
 
 
 class EEGKFoldDataLoader:
@@ -26,7 +35,8 @@ class EEGKFoldDataLoader:
         self.datasets = None
         self.all_splits = None
         self.train_val_datasets = None
-        self.fold = 0
+        self.current_fold = None
+        self.current_epoch = None
 
         if isinstance(dataset_files, list):
             self.dataset_files = dataset_files
@@ -36,7 +46,8 @@ class EEGKFoldDataLoader:
         self.n_splits = n_splits
         self.n_workers = n_workers
         self.batch_size = batch_size
-        self.generator = torch.Generator().manual_seed(params.RD_SEED)
+        self.split_generator = torch.Generator().manual_seed(params.RD_SEED)
+        self.dataloader_generator = torch.Generator().manual_seed(0)
         self.setup()
 
     def setup(self):
@@ -48,7 +59,7 @@ class EEGKFoldDataLoader:
             print("Loading dump file {}".format(dump_file))
             i_dataset = EEGDataset(dump_file, w_out=params.W_OUT)
             datasets.append(i_dataset)
-            train_val_dt, test_dt = random_split(i_dataset, [0.9, 0.1], generator=self.generator)
+            train_val_dt, test_dt = random_split(i_dataset, [0.9, 0.1], generator=self.split_generator)
             train_val_dts.append(train_val_dt)
             test_dts.append(test_dt)
 
@@ -65,9 +76,9 @@ class EEGKFoldDataLoader:
     def set_fold(self, k):
         if k is None or k < 0 or k >= self.n_splits:
             print("Fold value is invalid. Set to default value: 0")
-            self.fold = 0
+            self.current_fold = 0
         else:
-            self.fold = k
+            self.current_fold = k
 
         train_dts, val_dts = [], []
         for i, (dataset, splits) in enumerate(zip(self.datasets, self.all_splits)):
@@ -82,11 +93,21 @@ class EEGKFoldDataLoader:
         self.train_dataset = ConcatDataset(train_dts)
         self.val_dataset = ConcatDataset(val_dts)
 
-    def train_dataloader(self):
+    def set_epoch(self, epoch):
+        if self.current_fold is None:
+            print("Fold attribute is None. Set to default value: 0")
+            self.current_fold = 0
+        self.current_epoch = epoch
+        dataloader_generator_seed = (self.current_epoch + 1) * (self.current_fold + 1)
+        self.dataloader_generator = self.dataloader_generator.manual_seed(dataloader_generator_seed)
+
+    def train_dataloader(self, epoch):
+        self.set_epoch(epoch)
         return DataLoader(
             dataset=self.train_dataset,
             batch_size=self.batch_size,
-            shuffle=True,
+            shuffle=False,
+            sampler=RandomSampler(self.train_dataset, generator=self.dataloader_generator),
             num_workers=self.n_workers,
             drop_last=True
         )
@@ -97,7 +118,7 @@ class EEGKFoldDataLoader:
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.n_workers,
-            drop_last=True
+            drop_last=True,
         )
 
     def test_dataloader(self):
@@ -106,14 +127,13 @@ class EEGKFoldDataLoader:
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.n_workers,
-            drop_last=True
+            drop_last=True,
         )
 
 
 if __name__ == '__main__':
-    pass
-    # dataloader = eeg_data_loader.train_dataloader()
-    # for batch in dataloader:
-    #     x, _, _ = batch
-    #     print(x.shape)
-    # pass
+    dataloader = EEGKFoldDataLoader()
+    dataloader.set_fold(0)
+    train_dataloader = dataloader.train_dataloader(epoch=0)
+    for i, data in enumerate(train_dataloader):
+        print(data)

@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import numpy as np
@@ -34,7 +35,8 @@ class EEGKFoldTrainer:
             callbacks=None,
             early_stopping=None,
             export_torchscript=False,
-            # save_last=False
+            resume_checkpoint=False,
+            checkpoint_path=None,
 
     ):
         self.logger = MyLogger()
@@ -48,6 +50,13 @@ class EEGKFoldTrainer:
         seed_everything(params.RD_SEED)
         self.fabric.launch()
         self.device = self.fabric.device
+        self.n_epochs = n_epochs
+        self.n_splits = n_splits
+        self.export_torchscript = export_torchscript
+        self.batch_size = batch_size
+        self.resume_checkpoint = resume_checkpoint
+        self.checkpoint_path = checkpoint_path
+        self.early_stopping = early_stopping
 
         self.softmax = torch.nn.Softmax(dim=-1)
         self.model_type = model_type
@@ -58,12 +67,6 @@ class EEGKFoldTrainer:
         w_binary = torch.tensor([0.1, 1], dtype=torch.float32, device=self.device)
         self.loss_fn_train_binary = torch.nn.CrossEntropyLoss(weight=w_binary)
         self.loss_fn_eval = torch.nn.CrossEntropyLoss()
-        self.n_epochs = n_epochs
-        self.n_splits = n_splits
-        self.export_torchscript = export_torchscript
-        self.batch_size = batch_size
-
-        self.early_stopping = early_stopping
 
     def base_step(self, model, batch_idx, batch):
         x, lb, lb_binary = batch
@@ -84,30 +87,61 @@ class EEGKFoldTrainer:
         return loss + weight_star * loss_binary
 
     def fit(self):
+        time_break = False
+        t_0 = time.time()
+
         # print trainer summary at training beginning
-        self.fabric.print("TRAINING STAGE")
+        self.fabric.print("\nTRAINING STAGE")
         self.fabric.print("Using device: ", self.fabric.device)
         if self.early_stopping is not None:
-            self.fabric.print(f"Apply early stopping: {self.early_stopping}.")
+            self.fabric.print(f"Apply early stopping: {self.early_stopping}")
         else:
-            self.fabric.print("Not apply early stopping.")
+            self.fabric.print("Not apply early stopping")
         self.trainer_summary()
 
-        best_criteria = 1e6
         best_fold = 0
         best_epoch = 0
+        best_criteria = 1e6
+        last_fold = -1
+        last_epoch = -1
+
+        last_state = None
+
+        if self.resume_checkpoint is True and self.checkpoint_path is not None:
+            self.fabric.print(f"Resuming training from {self.checkpoint_path}")
+            last_state = torch.load(self.checkpoint_path)
+            last_fold = last_state['last_fold']
+            last_epoch = last_state['last_epoch']
+            best_fold = last_state['best_fold']
+            best_epoch = last_state['best_epoch']
+            best_criteria = last_state['best_criteria']
+            self.fabric.print(f"Start training from fold {last_fold + 1} - epoch {last_epoch}")
+        else:
+            self.fabric.print(f"Training from scratch")
+
         for k in range(self.n_splits):
-            self.fabric.print(f"Working on fold {k + 1}/{self.n_splits}")
-            model, optimizer = self.models[k], self.optimizers[k]
+            if (last_epoch < self.n_epochs - 1 and k < last_fold) or (
+                    last_epoch == self.n_epochs - 1 and k <= last_fold):
+                continue
+
+            self.fabric.print(f"\nWorking on fold {k}/{self.n_splits - 1}")
             self.dataloaders.set_fold(k)
-            train_dataloader, val_dataloader = self.dataloaders.train_dataloader(), self.dataloaders.val_dataloader()
+            model, optimizer = self.models[k], self.optimizers[k]
             model, optimizer = self.fabric.setup(model, optimizer)
-            train_dataloader, val_dataloader = self.fabric.setup_dataloaders(train_dataloader, val_dataloader)
+            if last_state is not None:
+                model.load_state_dict(last_state['last_model_state_dict'])
+                optimizer.load_state_dict(last_state['last_optimizer_state_dict'])
 
             early_stopping = self.early_stopping
             for epoch in range(self.n_epochs):
-                self.fabric.print(f"Epoch {epoch + 1}/{self.n_epochs}")
+                if k == last_fold and epoch <= last_epoch:
+                    continue
+
+                self.fabric.print(f"Epoch {epoch}/{self.n_epochs - 1}")
                 self.logger.update_flag(flag='fit', epoch=epoch, fold=k)
+                train_dataloader = self.dataloaders.train_dataloader(epoch=epoch)
+                val_dataloader = self.dataloaders.val_dataloader()
+                train_dataloader, val_dataloader = self.fabric.setup_dataloaders(train_dataloader, val_dataloader)
 
                 # TRAINING LOOP
                 model.train()
@@ -188,18 +222,6 @@ class EEGKFoldTrainer:
 
                     self.logger.save_to_csv()
 
-                    # self.fabric.print(
-                    #     f"Fold {k + 1} Epoch {epoch + 1}\n"
-                    #     f"Validation loss {val_loss:.4f}\n"
-                    #     f"Validation loss_binary {val_loss_binary:.4f}\n"
-                    #     f"Validation AUROC {val_auroc:.4f}\n"
-                    #     f"Validation AUPRC {val_auprc:.4f}\n"
-                    #     f"Validation AUROC Binary {val_auroc_binary:.4f}\n"
-                    #     f"Validation AUPRC Binary {val_auprc_binary:.4f}\n"
-                    #     f"Validation F1X {f1x:.4f}\n"
-                    #     f"Validation F1X Binary {f1x_binary:.4f}\n"
-                    # )
-
                     # define criteria
                     if params.CRITERIA == 'f1x':
                         criteria = -f1x
@@ -216,6 +238,7 @@ class EEGKFoldTrainer:
                         best_fold = k
                         best_epoch = epoch
                         state_dict = {
+                            'fold': k,
                             'epoch': epoch,
                             "model_state_dict": model.state_dict(),
                             "optimizer_state_dict": optimizer.state_dict(),
@@ -226,27 +249,44 @@ class EEGKFoldTrainer:
                             early_stopping -= 1
 
                     self.fabric.print(
-                        f"Current: Fold {k + 1} - Epoch {epoch + 1} - Criteria {params.CRITERIA} = {abs(criteria):.4f}\n"
-                        f"Best: Fold {best_fold + 1} - Epoch {best_epoch + 1} - Criteria {params.CRITERIA} = {abs(best_criteria):.4f}\n"
+                        f"Current: Fold {k} - Epoch {epoch} - Criteria {params.CRITERIA} = {abs(criteria):.4f}\n"
+                        f"Best: Fold {best_fold} - Epoch {best_epoch} - Criteria {params.CRITERIA} = {abs(best_criteria):.4f}"
                     )
 
                     if early_stopping is not None and early_stopping <= 0:
-                        self.fabric.print("Early Stopping because criteria did not improve!\n")
+                        self.fabric.print("Early Stopping because criteria did not improve!")
                         break
 
-            if self.model_type == "transformer":
+                t_current = time.time() - t_0
+                t_next_expect = t_current + t_current / ((k + 1) * (epoch + 1))
+                if t_next_expect > params.TRAINING_TIME_LIMIT:
+                    state_dict = {
+                        "best_fold": best_fold,
+                        "best_epoch": best_epoch,
+                        "best_criteria": best_criteria,
+                        "last_fold": k,
+                        "last_epoch": epoch,
+                        "last_model_state_dict": model.state_dict(),
+                        "last_optimizer_state_dict": optimizer.state_dict(),
+                    }
+                    self.fabric.save(f'{OUT_DIR}/checkpoints/{self.model_type}_last.pkl', state_dict)
+                    time_break = True
+                    break
+
+            if time_break:
+                self.fabric.print("Training reaches time limit!")
                 break
 
         if self.export_torchscript:
             self.export_to_torchscript()
 
     def test(self):
-        self.fabric.print("TESTING STAGE")
+        self.fabric.print("\nTESTING STAGE")
         self.fabric.print("Using device: ", self.fabric.device)
         model = get_model(self.model_type)
         state = torch.load(str(Path(OUT_DIR, 'checkpoints', f'{self.model_type}_best.pkl')), weights_only=True)
         model.load_state_dict(state['model_state_dict'])
-        model = self.fabric.setup_module(model, move_to_device=True)
+        model = self.fabric.setup_module(model)
         test_dataloader = self.dataloaders.test_dataloader()
         test_dataloader = self.fabric.setup_dataloaders(test_dataloader)
         self.logger.update_flag(flag='test', epoch=None, fold=None)
@@ -326,7 +366,7 @@ class EEGKFoldTrainer:
         self.logger.log_model_summary(model_summary)
 
     def export_to_torchscript(self):
-        self.fabric.print("Exporting TorchScript model...")
+        self.fabric.print("\nExporting TorchScript model...")
         model = get_model(self.model_type)
         state = torch.load(str(Path(OUT_DIR, 'checkpoints', f'{self.model_type}_best.pkl')), weights_only=True)
         model.load_state_dict(state['model_state_dict'])

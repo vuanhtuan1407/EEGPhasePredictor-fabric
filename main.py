@@ -13,6 +13,8 @@ def parse_arguments():
     parser.add_argument("--n_epochs", type=int, default=2)
     parser.add_argument("--n_splits", type=int, default=2)
     parser.add_argument("--n_workers", type=int, default=0)
+    parser.add_argument("--resume_checkpoint", type=bool, default=False)
+    parser.add_argument("--checkpoint_path", type=str, default=None)
     parser.add_argument('--auto_visualize', type=bool, default=True)
     parser.add_argument("--early_stopping", type=int, default=None)
     parser.add_argument("--export_torchscript", type=bool, default=True)
@@ -32,6 +34,8 @@ def run():
         devices=params.DEVICES,
         early_stopping=None,  # Force not apply early stopping because of KFold training process
         export_torchscript=args.export_torchscript,
+        resume_checkpoint=args.resume_checkpoint,
+        checkpoint_path=args.checkpoint_path,
     )
     trainer.fit()
     trainer.test()
