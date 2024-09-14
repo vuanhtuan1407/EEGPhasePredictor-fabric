@@ -18,6 +18,6 @@ N_SPLITS = 5
 POS_IDX = int(W_OUT / 2)  # position index of the main segment
 CRITERIA = 'f1x'  # criteria can be ['mean_val_loss', 'mean_val_loss_binary', 'f1x', 'f1x_binary']
 
-TRAINING_TIME_LIMIT = 10  # seconds
+TRAINING_TIME_LIMIT = 41400  # seconds
 
 # print(POS_IDX)
