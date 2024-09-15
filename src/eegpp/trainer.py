@@ -110,7 +110,7 @@ class EEGKFoldTrainer:
 
         if self.resume_checkpoint is True and self.checkpoint_path is not None:
             self.fabric.print(f"Resuming training from {self.checkpoint_path}")
-            last_state = torch.load(self.checkpoint_path, weights_only=True)
+            last_state = torch.load(self.checkpoint_path)
             last_fold = last_state['last_fold']
             last_epoch = last_state['last_epoch']
             best_fold = last_state['best_fold']
