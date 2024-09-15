@@ -1,3 +1,4 @@
+import os
 import time
 from pathlib import Path
 
@@ -109,7 +110,7 @@ class EEGKFoldTrainer:
 
         if self.resume_checkpoint is True and self.checkpoint_path is not None:
             self.fabric.print(f"Resuming training from {self.checkpoint_path}")
-            last_state = torch.load(self.checkpoint_path)
+            last_state = torch.load(self.checkpoint_path, weights_only=True)
             last_fold = last_state['last_fold']
             last_epoch = last_state['last_epoch']
             best_fold = last_state['best_fold']
@@ -284,80 +285,84 @@ class EEGKFoldTrainer:
         self.fabric.print("\nTESTING STAGE")
         self.fabric.print("Using device: ", self.fabric.device)
         model = get_model(self.model_type)
-        state = torch.load(str(Path(OUT_DIR, 'checkpoints', f'{self.model_type}_best.pkl')), weights_only=True)
-        model.load_state_dict(state['model_state_dict'])
-        model = self.fabric.setup_module(model)
-        test_dataloader = self.dataloaders.test_dataloader()
-        test_dataloader = self.fabric.setup_dataloaders(test_dataloader)
-        self.logger.update_flag(flag='test', epoch=None, fold=None)
+        best_checkpoint = str(Path(OUT_DIR, 'checkpoints', f'{self.model_type}_best.pkl'))
+        if os.path.exists(best_checkpoint):
+            state = torch.load(best_checkpoint, weights_only=True)
+            model.load_state_dict(state['model_state_dict'])
+            model = self.fabric.setup_module(model)
+            test_dataloader = self.dataloaders.test_dataloader()
+            test_dataloader = self.fabric.setup_dataloaders(test_dataloader)
+            self.logger.update_flag(flag='test', epoch=None, fold=None)
 
-        model.eval()
-        test_pred = []
-        test_lb = []
-        test_pred_binary = []
-        test_lb_binary = []
-        with torch.no_grad():
-            freeze_parameters(model)
-            test_bar = tqdm(enumerate(test_dataloader), total=len(test_dataloader), desc="Testing")
-            for batch_idx, batch in test_bar:
-                _, lb, pred, lb_binary, pred_binary, _ = self.base_step(model, batch_idx, batch)
-                # ONLY TEST ON THE MAIN SEGMENT
-                loss = self.loss_fn_eval(pred[:, params.POS_IDX, :-1], lb[:, params.POS_IDX, :-1])
-                test_pred.append(pred[:, params.POS_IDX, :-1])  # ignore the last class
-                test_lb.append(lb[:, params.POS_IDX, :-1])
-                test_pred_binary.append(pred_binary[:, params.POS_IDX, :])
-                test_lb_binary.append(lb_binary[:, params.POS_IDX, :])
-                test_bar.set_postfix({"step_loss": loss.item()})
+            model.eval()
+            test_pred = []
+            test_lb = []
+            test_pred_binary = []
+            test_lb_binary = []
+            with torch.no_grad():
+                freeze_parameters(model)
+                test_bar = tqdm(enumerate(test_dataloader), total=len(test_dataloader), desc="Testing")
+                for batch_idx, batch in test_bar:
+                    _, lb, pred, lb_binary, pred_binary, _ = self.base_step(model, batch_idx, batch)
+                    # ONLY TEST ON THE MAIN SEGMENT
+                    loss = self.loss_fn_eval(pred[:, params.POS_IDX, :-1], lb[:, params.POS_IDX, :-1])
+                    test_pred.append(pred[:, params.POS_IDX, :-1])  # ignore the last class
+                    test_lb.append(lb[:, params.POS_IDX, :-1])
+                    test_pred_binary.append(pred_binary[:, params.POS_IDX, :])
+                    test_lb_binary.append(lb_binary[:, params.POS_IDX, :])
+                    test_bar.set_postfix({"step_loss": loss.item()})
 
-            test_pred = torch.concat(test_pred, dim=0)
-            test_lb = torch.concat(test_lb, dim=0)
-            test_pred_binary = torch.concat(test_pred_binary, dim=0)
-            test_lb_binary = torch.concat(test_lb_binary, dim=0)
+                test_pred = torch.concat(test_pred, dim=0)
+                test_lb = torch.concat(test_lb, dim=0)
+                test_pred_binary = torch.concat(test_pred_binary, dim=0)
+                test_lb_binary = torch.concat(test_lb_binary, dim=0)
 
-            test_loss = self.loss_fn_eval(test_pred, test_lb).item()
-            test_loss_binary = self.loss_fn_eval(test_pred_binary, test_lb_binary).item()
-            self.logger.log_dict({
-                "test/loss": test_loss,
-                "test/loss_binary": test_loss_binary,
-            })
+                test_loss = self.loss_fn_eval(test_pred, test_lb).item()
+                test_loss_binary = self.loss_fn_eval(test_pred_binary, test_lb_binary).item()
+                self.logger.log_dict({
+                    "test/loss": test_loss,
+                    "test/loss_binary": test_loss_binary,
+                })
 
-            test_pred = self.softmax(test_pred).detach().cpu().numpy()
-            test_lb = torch.argmax(test_lb, dim=-1).detach().cpu().numpy()
-            np.savetxt(str(Path(OUT_DIR, 'logs', f'{self.model_type}_best_prediction.txt')), test_pred, fmt='%.4f')
-            np.savetxt(str(Path(OUT_DIR, 'logs', f'{self.model_type}_lb_prediction.txt')), test_lb, fmt='%d')
-            test_auroc = auroc(test_lb, test_pred, multi_class='ovr')
-            test_auprc = auprc(test_lb, test_pred)
+                test_pred = self.softmax(test_pred).detach().cpu().numpy()
+                test_lb = torch.argmax(test_lb, dim=-1).detach().cpu().numpy()
+                np.savetxt(str(Path(OUT_DIR, 'logs', f'{self.model_type}_best_prediction.txt')), test_pred, fmt='%.4f')
+                np.savetxt(str(Path(OUT_DIR, 'logs', f'{self.model_type}_lb_prediction.txt')), test_lb, fmt='%d')
+                test_auroc = auroc(test_lb, test_pred, multi_class='ovr')
+                test_auprc = auprc(test_lb, test_pred)
 
-            test_pred_binary = self.softmax(test_pred_binary).detach().cpu().numpy()
-            test_lb_binary = test_lb_binary.detach().cpu().numpy()
-            np.savetxt(str(Path(OUT_DIR, 'logs', f'{self.model_type}_best_prediction_binary.txt')), test_pred_binary,
-                       fmt='%.4f')
-            np.savetxt(str(Path(OUT_DIR, 'logs', f'{self.model_type}_lb_prediction_binary.txt')),
-                       np.argmax(test_lb_binary, axis=-1), fmt='%d')
-            test_auroc_binary = auroc(test_lb_binary, test_pred_binary)
-            test_auprc_binary = auprc(test_lb_binary, test_pred_binary)
+                test_pred_binary = self.softmax(test_pred_binary).detach().cpu().numpy()
+                test_lb_binary = test_lb_binary.detach().cpu().numpy()
+                np.savetxt(str(Path(OUT_DIR, 'logs', f'{self.model_type}_best_prediction_binary.txt')), test_pred_binary,
+                           fmt='%.4f')
+                np.savetxt(str(Path(OUT_DIR, 'logs', f'{self.model_type}_lb_prediction_binary.txt')),
+                           np.argmax(test_lb_binary, axis=-1), fmt='%d')
+                test_auroc_binary = auroc(test_lb_binary, test_pred_binary)
+                test_auprc_binary = auprc(test_lb_binary, test_pred_binary)
 
-            f1x = 2 * test_auroc * test_auprc / (test_auroc + test_auprc + 1e-10)
-            f1x_binary = 2 * test_auroc_binary * test_auprc_binary / (test_auroc_binary + test_auprc_binary + 1e-10)
+                f1x = 2 * test_auroc * test_auprc / (test_auroc + test_auprc + 1e-10)
+                f1x_binary = 2 * test_auroc_binary * test_auprc_binary / (test_auroc_binary + test_auprc_binary + 1e-10)
 
-            self.logger.log_dict({
-                "test/auroc": test_auroc,
-                "test/auprc": test_auprc,
-                "test/auroc_binary": test_auroc_binary,
-                "test/auprc_binary": test_auprc_binary,
-                "test/f1x": f1x,
-                "test/f1x_binary": f1x_binary,
-            })
+                self.logger.log_dict({
+                    "test/auroc": test_auroc,
+                    "test/auprc": test_auprc,
+                    "test/auroc_binary": test_auroc_binary,
+                    "test/auprc_binary": test_auprc_binary,
+                    "test/f1x": f1x,
+                    "test/f1x_binary": f1x_binary,
+                })
 
-            self.fabric.print(
-                f"Test Loss {test_loss:.4f}\n"
-                f"Test AUROC {test_auroc:.4f}\n"
-                f"Test AUPRC {test_auprc:.4f}\n"
-                f"Test F1X {f1x:.4f}\n"
-                f"Test F1X Binary {f1x_binary:.4f}"
-            )
+                self.fabric.print(
+                    f"Test Loss {test_loss:.4f}\n"
+                    f"Test AUROC {test_auroc:.4f}\n"
+                    f"Test AUPRC {test_auprc:.4f}\n"
+                    f"Test F1X {f1x:.4f}\n"
+                    f"Test F1X Binary {f1x_binary:.4f}"
+                )
 
-            self.logger.save_to_csv()
+                self.logger.save_to_csv()
+        else:
+            self.fabric.print("Best model checkpoint path not exists. Ignore TEST STAGE!")
 
     def trainer_summary(self):
         input_size = (self.batch_size, 3, (params.W_OUT * params.MAX_SEQ_SIZE))
