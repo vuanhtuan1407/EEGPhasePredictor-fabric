@@ -10,12 +10,13 @@
       <excludeFolder url="file://$MODULE_DIR$/out/logs" />
       <excludeFolder url="file://$MODULE_DIR$/out/figures" />
       <excludeFolder url="file://$MODULE_DIR$/data/raw" />
+      <excludeFolder url="file://$MODULE_DIR$/backup" />
     </content>
-    <orderEntry type="jdk" jdkName="EEGp39" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="EEGPP" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">
-    <option name="versionSpecifier" value="Greater or equal (&gt;=x.y.z)" />
+    <option name="versionSpecifier" value="Strong equality (==x.y.z)" />
     <option name="removeUnused" value="true" />
     <option name="modifyBaseFiles" value="true" />
   </component>

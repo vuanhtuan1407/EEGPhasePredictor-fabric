@@ -10,3 +10,6 @@ data/raw
 out/checkpoints
 out/logs
 out/figures
+
+# backup
+backup

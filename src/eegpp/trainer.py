@@ -110,7 +110,7 @@ class EEGKFoldTrainer:
 
         if self.resume_checkpoint is True and self.checkpoint_path is not None:
             self.fabric.print(f"Resuming training from {self.checkpoint_path}")
-            last_state = torch.load(self.checkpoint_path)
+            last_state = torch.load(self.checkpoint_path, weights_only=False)
             last_fold = last_state['last_fold']
             last_epoch = last_state['last_epoch']
             best_fold = last_state['best_fold']
@@ -188,6 +188,7 @@ class EEGKFoldTrainer:
                     val_loss = self.loss_fn_eval(val_pred, val_lb).item()
                     val_loss_binary = self.loss_fn_eval(val_pred_binary, val_lb_binary).item()
 
+                    # TODO: transfer to torchmetrics
                     # calculate val AUROC and AUPRC
                     val_pred = self.softmax(val_pred).detach().cpu().numpy()
                     val_lb = torch.argmax(val_lb, dim=-1).detach().cpu().numpy()
@@ -258,8 +259,9 @@ class EEGKFoldTrainer:
                         self.fabric.print("Early Stopping because criteria did not improve!")
                         break
 
+                total_epoch = k * self.n_epochs + epoch + 1
                 t_current = time.time() - t_0
-                t_next_expect = t_current + t_current / ((k + 1) * (epoch + 1))
+                t_next_expect = t_current + t_current / total_epoch
                 if t_next_expect > params.TRAINING_TIME_LIMIT:
                     state_dict = {
                         "best_fold": best_fold,
@@ -283,10 +285,10 @@ class EEGKFoldTrainer:
 
     def test(self):
         self.fabric.print("\nTESTING STAGE")
-        self.fabric.print("Using device: ", self.fabric.device)
-        model = get_model(self.model_type)
         best_checkpoint = str(Path(OUT_DIR, 'checkpoints', f'{self.model_type}_best.pkl'))
         if os.path.exists(best_checkpoint):
+            self.fabric.print("Using device: ", self.fabric.device)
+            model = get_model(self.model_type)
             state = torch.load(best_checkpoint, weights_only=True)
             model.load_state_dict(state['model_state_dict'])
             model = self.fabric.setup_module(model)
@@ -333,7 +335,8 @@ class EEGKFoldTrainer:
 
                 test_pred_binary = self.softmax(test_pred_binary).detach().cpu().numpy()
                 test_lb_binary = test_lb_binary.detach().cpu().numpy()
-                np.savetxt(str(Path(OUT_DIR, 'logs', f'{self.model_type}_best_prediction_binary.txt')), test_pred_binary,
+                np.savetxt(str(Path(OUT_DIR, 'logs', f'{self.model_type}_best_prediction_binary.txt')),
+                           test_pred_binary,
                            fmt='%.4f')
                 np.savetxt(str(Path(OUT_DIR, 'logs', f'{self.model_type}_lb_prediction_binary.txt')),
                            np.argmax(test_lb_binary, axis=-1), fmt='%d')
@@ -371,17 +374,21 @@ class EEGKFoldTrainer:
         self.logger.log_model_summary(model_summary)
 
     def export_to_torchscript(self):
-        self.fabric.print("\nExporting TorchScript model...")
-        model = get_model(self.model_type)
-        state = torch.load(str(Path(OUT_DIR, 'checkpoints', f'{self.model_type}_best.pkl')), weights_only=True)
-        model.load_state_dict(state['model_state_dict'])
-        try:
-            model_scripted = torch.jit.script(model)
-            model_scripted.save(f'{OUT_DIR}/checkpoints/{self.model_type}_best_scripted.pt')
-            self.fabric.print("Exporting TorchScript successfully!")
-        except Exception as e:
-            self.logger.log_error(error=e)
-            self.fabric.print("Cannot convert model to TorchScript")
+        best_checkpoint = str(Path(OUT_DIR, 'checkpoints', f'{self.model_type}_best.pkl'))
+        if os.path.exists(best_checkpoint):
+            self.fabric.print("\nExporting TorchScript model...")
+            model = get_model(self.model_type)
+            state = torch.load(best_checkpoint, weights_only=True)
+            model.load_state_dict(state['model_state_dict'])
+            try:
+                model_scripted = torch.jit.script(model)
+                model_scripted.save(f'{OUT_DIR}/checkpoints/{self.model_type}_best_scripted.pt')
+                self.fabric.print("Exporting TorchScript successfully!")
+            except Exception as e:
+                self.logger.log_error(error=e)
+                self.fabric.print("Cannot convert model to TorchScript")
+        else:
+            self.fabric.print("Best model checkpoint path not exists. Skip exporting TorchScript!")
 
 
 if __name__ == '__main__':
