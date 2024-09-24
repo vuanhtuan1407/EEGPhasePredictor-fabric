@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from data import SEQ_FILES, LABEL_FILES, DUMP_DATA_FILES
 from src.eegpp import params
-from src.eegpp.utils.general_utils import get_path_slash, convert_ms2datetime, convert_datetime2ms
+from src.eegpp.utils.common_utils import get_path_slash, convert_ms2datetime, convert_datetime2ms
 
 LABEL_DICT = {0: "W", 1: "W*", 2: "NR", 3: "NR*", 4: "R", 5: "R*", -1: "others"}
 

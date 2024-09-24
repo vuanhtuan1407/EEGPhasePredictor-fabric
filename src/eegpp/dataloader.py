@@ -28,7 +28,10 @@ class EEGKFoldDataLoader:
             n_splits=5,
             n_workers=0,
             batch_size=4,
+            minmax_normalized=True,
     ):
+        self.minmax_normalized = minmax_normalized
+
         self.val_dataset = None
         self.train_dataset = None
         self.test_dataset = None
@@ -57,7 +60,7 @@ class EEGKFoldDataLoader:
         for i in self.dataset_files:
             dump_file = DUMP_DATA_FILES['train'][i]
             print("Loading dump file {}".format(dump_file))
-            i_dataset = EEGDataset(dump_file, w_out=params.W_OUT)
+            i_dataset = EEGDataset(dump_file, w_out=params.W_OUT, minmax_normalized=self.minmax_normalized)
             datasets.append(i_dataset)
             train_val_dt, test_dt = random_split(i_dataset, [0.9, 0.1], generator=self.split_generator)
             train_val_dts.append(train_val_dt)

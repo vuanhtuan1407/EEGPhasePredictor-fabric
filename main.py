@@ -7,7 +7,7 @@ from src.eegpp.visualization import visualize_results
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type", type=str, default="stftcnn1dnc")
+    parser.add_argument("--model_type", type=str, default="ffttransnc")
     parser.add_argument("--lr", type=float, default=5e-4)
     parser.add_argument("--batch_size", type=int, default=10)
     parser.add_argument("--n_epochs", type=int, default=2)
@@ -41,7 +41,7 @@ def run():
     trainer.test()
 
     if args.auto_visualize:
-        visualize_results()
+        visualize_results(args.model_type)
 
 
 if __name__ == "__main__":

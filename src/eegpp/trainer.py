@@ -8,15 +8,15 @@ from lightning.fabric import Fabric, seed_everything
 from sklearn.metrics import average_precision_score as auprc
 from sklearn.metrics import roc_auc_score as auroc
 from torch.optim import Adam
-from torchinfo import summary
 from tqdm import tqdm
 
 from out import OUT_DIR
 from src.eegpp import params
 from src.eegpp.dataloader import EEGKFoldDataLoader
 from src.eegpp.logger import MyLogger
-from src.eegpp.utils.general_utils import generate_normal_vector
-from src.eegpp.utils.model_utils import get_model, freeze_parameters, unfreeze_parameters
+from src.eegpp.utils.common_utils import generate_normal_vector
+from src.eegpp.utils.model_utils import get_model, freeze_parameters, unfreeze_parameters, check_using_ft, \
+    summarize_model
 
 torch.set_float32_matmul_precision('medium')
 
@@ -63,7 +63,14 @@ class EEGKFoldTrainer:
         self.model_type = model_type
         self.models = [get_model(model_type) for _ in range(n_splits)]
         self.optimizers = [Adam(model.parameters(), lr=lr, weight_decay=weight_decay) for model in self.models]
-        self.dataloaders = EEGKFoldDataLoader(n_splits=n_splits, batch_size=batch_size, n_workers=n_workers)
+
+        if check_using_ft(self.model_type):
+            self.dataloaders = EEGKFoldDataLoader(n_splits=n_splits, batch_size=batch_size, n_workers=n_workers,
+                                                  minmax_normalized=False)
+        else:
+            self.dataloaders = EEGKFoldDataLoader(n_splits=n_splits, batch_size=batch_size, n_workers=n_workers,
+                                                  minmax_normalized=True)
+
         self.loss_fn_train = torch.nn.CrossEntropyLoss(ignore_index=-1)
         w_binary = torch.tensor([0.1, 1], dtype=torch.float32, device=self.device)
         self.loss_fn_train_binary = torch.nn.CrossEntropyLoss(weight=w_binary)
@@ -369,9 +376,8 @@ class EEGKFoldTrainer:
 
     def trainer_summary(self):
         input_size = (self.batch_size, 3, (params.W_OUT * params.MAX_SEQ_SIZE))
-        input_data = torch.ones(input_size)
-        model_summary = summary(model=get_model(self.model_type), input_data=input_data, verbose=0)
-        self.logger.log_model_summary(model_summary)
+        model_summary = summarize_model(self.model_type, input_size, verbose=0)
+        self.logger.log_model_summary(self.model_type, model_summary)
 
     def export_to_torchscript(self):
         best_checkpoint = str(Path(OUT_DIR, 'checkpoints', f'{self.model_type}_best.pkl'))

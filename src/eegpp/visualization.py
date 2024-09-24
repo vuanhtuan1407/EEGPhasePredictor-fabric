@@ -19,7 +19,7 @@ def load_csv(filepath):
     return data
 
 
-def visualize_fit_process():
+def visualize_fit_process(model_type):
     df = load_csv(str(Path(OUT_DIR, 'logs', 'fit_logs.csv')))
     fig, ax = plt.subplots(1, 2, figsize=(10 * 2, 5))
     plt.subplots_adjust(wspace=0.3)
@@ -38,7 +38,7 @@ def visualize_fit_process():
     ax[1].set_ylabel('Value')
     ax[1].set_xticks(np.arange(0, max(df['epoch'].unique()) + 1))
 
-    fig.savefig(str(Path(OUT_DIR, 'figures', 'fit_process.jpg')))
+    fig.savefig(str(Path(OUT_DIR, 'figures', f'{model_type}_fit_process.jpg')))
 
 
 def visualize_fit_process_backup():
@@ -82,7 +82,7 @@ def visualize_fit_process_backup():
     """
 
 
-def visualize_test_metrics():
+def visualize_test_metrics(model_type):
     df = load_csv(str(Path(OUT_DIR, 'logs', 'test_logs.csv')))
     fig, ax = plt.subplots(figsize=(10, 10))
     sns.barplot(ax=ax, data=df, legend=True)
@@ -92,12 +92,12 @@ def visualize_test_metrics():
     for v in ax.containers:
         ax.bar_label(v)
 
-    fig.savefig(str(Path(OUT_DIR, 'figures', 'test_metrics.jpg')))
+    fig.savefig(str(Path(OUT_DIR, 'figures', f'{model_type}_test_metrics.jpg')))
 
 
-def visualize_results():
-    visualize_fit_process()
-    visualize_test_metrics()
+def visualize_results(model_type):
+    visualize_fit_process(model_type)
+    visualize_test_metrics(model_type)
 
 
 def visualize_train_signal(window_size=3):

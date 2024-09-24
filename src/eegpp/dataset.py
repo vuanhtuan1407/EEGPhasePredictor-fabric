@@ -10,17 +10,19 @@ from src.eegpp.utils.data_utils import LABEL_DICT
 
 class EEGDataset(Dataset):
     def __init__(self, dump_path: str, w_out=3, contain_side: Literal['left', 'right', 'both', 'none'] = 'both',
-                 is_infer=False):
+                 is_infer=False, minmax_normalized=True):
         """
         EEG Dataset
         :param dump_path:
         :param w_out: must be an odd if contain == 'both'
         :param contain_side:
+        :param minmax_normalized: set minmax_normalized to False when using Fourier Transform
         """
         # data = (start_datetime, eeg, emg, mot, [lbs], mxs)
         self.is_infer = is_infer
         self.w_out = w_out
         self.contain_side = contain_side
+        self.minmax_normalized = minmax_normalized
         if not is_infer:
             self.start_datetime, self.eeg, self.emg, self.mot, self.lbs, self.mxs = joblib.load(dump_path)
         else:
@@ -63,13 +65,14 @@ class EEGDataset(Dataset):
             emg = torch.zeros(self.segment_length, dtype=torch.float32)
             mot = torch.zeros(self.segment_length, dtype=torch.float32)
         else:
-            # eeg = torch.tensor(self.eeg[idx], dtype=torch.float32) / self.mxs[0]
-            # emg = torch.tensor(self.emg[idx], dtype=torch.float32) / self.mxs[1]
-            # mot = torch.tensor(self.mot[idx], dtype=torch.float32) / self.mxs[2]
-
-            eeg = torch.tensor(self.eeg[idx], dtype=torch.float32)
-            emg = torch.tensor(self.emg[idx], dtype=torch.float32)
-            mot = torch.tensor(self.mot[idx], dtype=torch.float32)
+            if self.minmax_normalized:
+                eeg = torch.tensor(self.eeg[idx], dtype=torch.float32) / self.mxs[0]
+                emg = torch.tensor(self.emg[idx], dtype=torch.float32) / self.mxs[1]
+                mot = torch.tensor(self.mot[idx], dtype=torch.float32) / self.mxs[2]
+            else:
+                eeg = torch.tensor(self.eeg[idx], dtype=torch.float32)
+                emg = torch.tensor(self.emg[idx], dtype=torch.float32)
+                mot = torch.tensor(self.mot[idx], dtype=torch.float32)
 
         return torch.stack([eeg, emg, mot])
 
@@ -98,4 +101,3 @@ class EEGDataset(Dataset):
                 else:
                     lb_binary[1] = 1.0
         return lb_binary
-

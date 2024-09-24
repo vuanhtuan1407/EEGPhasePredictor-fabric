@@ -13,3 +13,6 @@ out/figures
 
 # backup
 backup
+
+# .ipynb
+*.ipynb
