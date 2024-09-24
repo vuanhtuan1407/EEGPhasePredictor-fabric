@@ -7,7 +7,7 @@ from src.eegpp.utils.data_utils import LABEL_DICT
 
 
 class FFTEmbedding(nn.Module):
-    def __init__(self, n_fft, d_model=1, norm='ortho'):
+    def __init__(self, n_fft, d_model=1, norm='forward'):
         super().__init__()
         self.n_fft = n_fft
         self.d_model = d_model
