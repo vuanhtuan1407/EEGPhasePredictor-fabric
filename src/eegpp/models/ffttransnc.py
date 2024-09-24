@@ -7,7 +7,7 @@ from src.eegpp.utils.data_utils import LABEL_DICT
 
 
 class FFTEmbedding(nn.Module):
-    def __init__(self, n_fft, d_model=1, norm='forward'):
+    def __init__(self, n_fft, d_model=1, norm='ortho'):
         super().__init__()
         self.n_fft = n_fft
         self.d_model = d_model
@@ -93,7 +93,6 @@ class FFTTransnCModel(nn.Module):
             input_embedding = FFTEmbedding(
                 n_fft=self.config['n_fft'],
                 d_model=self.config['d_model'],
-                norm=self.config['norm'],
             )
             transformer_encoder = TransformerEncoderBlock(
                 d_model=self.config['d_model'],
