@@ -12,4 +12,5 @@ conda install -c conda-forge seaborn=0.13.2 -y
 conda install -c conda-forge pandas==2.2.2 -y
 conda install -c conda-forge scipy==1.14.1 -y
 conda install -c conda-forge numpy==2.1.1 -y
+conda install -c conda-forge pywavelets==1.7.0 -y
 pip install joblib==1.4.2

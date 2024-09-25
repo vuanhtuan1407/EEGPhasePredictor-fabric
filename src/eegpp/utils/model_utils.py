@@ -6,6 +6,7 @@ from src.eegpp.models.baseline.cnn1d import CNN1DModel
 from src.eegpp.models.baseline.transformer import TransformerModel
 from src.eegpp.models.cnn1d2c import CNN1D2CModel
 from src.eegpp.models.fft2c import FFT2CModel
+from src.eegpp.models.fftcnn1dnc import FFTCNN1DnCModel
 from src.eegpp.models.ffttransnc import FFTTransnCModel
 from src.eegpp.models.stftcnn1dnc import STFTCNN1DnCModel
 from src.eegpp.models.stfttransnc import STFTTransnCModel
@@ -26,6 +27,8 @@ def get_model(model_type, yml_config_file=None):
         return STFTCNN1DnCModel()
     elif model_type == 'ffttransnc':
         return FFTTransnCModel()
+    elif model_type == 'fftcnn1dnc':
+        return FFTCNN1DnCModel()
     else:
         raise ValueError(f'Model type {model_type} not supported')
 
@@ -57,6 +60,6 @@ def summarize_model(model_type, input_size, verbose=0):
 
 
 if __name__ == '__main__':
-    model_type = 'ffttransnc'
-    input_size = (10, 3, 1 * params.MAX_SEQ_SIZE)
+    model_type = 'fftcnn1dnc'
+    input_size = (10, 3, 5 * params.MAX_SEQ_SIZE)
     model_summary = summarize_model(model_type=model_type, input_size=input_size, verbose=1)

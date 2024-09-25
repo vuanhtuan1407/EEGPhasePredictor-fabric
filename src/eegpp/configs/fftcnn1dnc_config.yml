@@ -1,0 +1,48 @@
+num_chains: 3
+n_fft: 5120
+conv_layers:
+  - name: conv1
+    out_channels: 4096
+    kernel_size: 11
+    stride: 4
+    padding: 0
+    pooling_kernel_size: 3
+    pooling_stride: 2
+    pooling_padding: 0
+    dropout: 0.1
+  - name: conv2
+    out_channels: 5120
+    kernel_size: 5
+    stride: 1
+    padding: 0
+    pooling_kernel_size: 3
+    pooling_stride: 2
+    pooling_padding: 0
+    dropout: 0.1
+  - name: conv3
+    out_channels: 6144
+    kernel_size: 5
+    stride: 1
+    padding: 0
+    pooling_kernel_size: 3
+    pooling_stride: 2
+    pooling_padding: 0
+    dropout: 0.1
+  - name: conv4
+    out_channels: 3072
+    kernel_size: 5
+    stride: 1
+    padding: 0
+    pooling_kernel_size: 3
+    pooling_stride: 2
+    pooling_padding: 0
+    dropout: 0.1
+  - name: conv5
+    out_channels: 1024
+    kernel_size: 5
+    stride: 1
+    padding: 0
+    pooling_kernel_size: 3
+    pooling_stride: 2
+    pooling_padding: 0
+    dropout: 0.1
