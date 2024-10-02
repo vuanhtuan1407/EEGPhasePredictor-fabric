@@ -1,5 +1,6 @@
 import numpy as np
 import pywt
+import ptwt
 import torch
 from torch import nn
 
@@ -17,13 +18,20 @@ class WTEmbedding(nn.Module):
         time = np.linspace(0.0, 4.0 * params.W_OUT, num=1024 * params.W_OUT)
         self.sample_period = np.diff(time).mean()
 
-    def forward(self, x):
+    def forward2(self, x):
         device = x.device
         x = x.cpu().numpy()
         x, _ = pywt.cwt(x, self.scales, self.wavelet, self.sample_period, axis=-1)
         x = torch.from_numpy(x).float().to(device)
         x = torch.abs(x)
         x = torch.transpose(x, 0, 1)
+        return x
+
+    def forward(self, x):
+        x, _ = ptwt.cwt(x, self.scales, self.wavelet, self.sample_period)
+        x = torch.abs(x)
+        x = torch.transpose(x, 0, 1)
+        x = x.float()
         return x
 
 

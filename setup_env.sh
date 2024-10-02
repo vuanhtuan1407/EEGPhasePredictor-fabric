@@ -14,3 +14,4 @@ conda install -c conda-forge scipy==1.14.1 -y
 conda install -c conda-forge numpy==2.1.1 -y
 conda install -c conda-forge pywavelets==1.7.0 -y
 pip install joblib==1.4.2
+pip install ptwt==0.1.9
