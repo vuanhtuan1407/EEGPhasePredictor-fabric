@@ -3,6 +3,7 @@ from torchinfo import summary
 
 from src.eegpp import params
 from src.eegpp.models.baseline.cnn1d import CNN1DModel
+from src.eegpp.models.baseline.resnet import ResNet50, ResNet101, ResNet152
 from src.eegpp.models.baseline.transformer import TransformerModel
 from src.eegpp.models.cnn1d2c import CNN1D2CModel
 from src.eegpp.models.fft2c import FFT2CModel
@@ -10,11 +11,15 @@ from src.eegpp.models.fftcnn1dnc import FFTCNN1DnCModel
 from src.eegpp.models.ffttransnc import FFTTransnCModel
 from src.eegpp.models.stftcnn1dnc import STFTCNN1DnCModel
 from src.eegpp.models.stfttransnc import STFTTransnCModel
+from src.eegpp.models.wtcnn1dnc import WTCNN1DnCModel
+from src.eegpp.models.wtresnet1dnc import WTResnet501DnCModel
 
 
 def get_model(model_type, yml_config_file=None):
     if model_type == 'cnn1d':
         return CNN1DModel()
+    elif model_type == 'resnet152':
+        return ResNet152(in_channels=100)
     elif model_type == 'transformer':
         return TransformerModel()
     elif model_type == 'cnn1d2c':
@@ -29,6 +34,10 @@ def get_model(model_type, yml_config_file=None):
         return FFTTransnCModel()
     elif model_type == 'fftcnn1dnc':
         return FFTCNN1DnCModel()
+    elif model_type == 'wtcnn1dnc':
+        return WTCNN1DnCModel()
+    elif model_type == 'wtresnet501dnc':
+        return WTResnet501DnCModel()
     else:
         raise ValueError(f'Model type {model_type} not supported')
 
@@ -54,12 +63,12 @@ def check_using_ft(model_type):
 
 def summarize_model(model_type, input_size, verbose=0):
     input_data = torch.zeros(input_size)
-    model_summary = summary(model=get_model(model_type), input_data=input_data, verbose=verbose)
+    model_summary = summary(model=get_model(model_type), input_data=input_data, verbose=verbose, depth=int(1e6))
     model_summary = str(model_summary)
     return model_summary
 
 
 if __name__ == '__main__':
-    model_type = 'fftcnn1dnc'
-    input_size = (10, 3, 5 * params.MAX_SEQ_SIZE)
+    model_type = 'wtresnet501dnc'
+    input_size = (10, 100, 5 * params.MAX_SEQ_SIZE)
     model_summary = summarize_model(model_type=model_type, input_size=input_size, verbose=1)

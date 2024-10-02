@@ -203,6 +203,7 @@ def visualize_labels():
 
 
 if __name__ == '__main__':
-    visualize_results()
+    pass
+    # visualize_results()
     # visualize_train_signal()
     # visualize_labels()
