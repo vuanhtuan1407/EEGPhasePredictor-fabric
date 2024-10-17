@@ -1,6 +1,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+dist/*
+
 
 # data
 src/eegpp2/data/dump
@@ -10,6 +12,8 @@ src/eegpp2/data/raw
 src/eegpp2/out/checkpoints
 src/eegpp2/out/logs
 src/eegpp2/out/figures
+
+src/eegpp2.egg-info/*
 
 # backup
 backup
