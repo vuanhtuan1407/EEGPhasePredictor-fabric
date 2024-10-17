@@ -1,18 +1,18 @@
 import torch
 from torchinfo import summary
 
-from src.eegpp import params
-from src.eegpp.models.baseline.cnn1d import CNN1DModel
-from src.eegpp.models.baseline.resnet import ResNet50, ResNet101, ResNet152
-from src.eegpp.models.baseline.transformer import TransformerModel
-from src.eegpp.models.cnn1d2c import CNN1D2CModel
-from src.eegpp.models.fft2c import FFT2CModel
-from src.eegpp.models.fftcnn1dnc import FFTCNN1DnCModel
-from src.eegpp.models.ffttransnc import FFTTransnCModel
-from src.eegpp.models.stftcnn1dnc import STFTCNN1DnCModel
-from src.eegpp.models.stfttransnc import STFTTransnCModel
-from src.eegpp.models.wtcnn1dnc import WTCNN1DnCModel
-from src.eegpp.models.wtresnet1dnc import WTResnet501DnCModel
+from src.eegpp2 import params
+from src.eegpp2.models.baseline.cnn1d import CNN1DModel
+from src.eegpp2.models.baseline.resnet import ResNet50, ResNet101, ResNet152
+from src.eegpp2.models.baseline.transformer import TransformerModel
+from src.eegpp2.models.cnn1d2c import CNN1D2CModel
+from src.eegpp2.models.fft2c import FFT2CModel
+from src.eegpp2.models.fftcnn1dnc import FFTCNN1DnCModel
+from src.eegpp2.models.ffttransnc import FFTTransnCModel
+from src.eegpp2.models.stftcnn1dnc import STFTCNN1DnCModel
+from src.eegpp2.models.stfttransnc import STFTTransnCModel
+from src.eegpp2.models.wtcnn1dnc import WTCNN1DnCModel
+from src.eegpp2.models.wtresnet1dnc import WTResnet501DnCModel
 
 
 def get_model(model_type, yml_config_file=None):

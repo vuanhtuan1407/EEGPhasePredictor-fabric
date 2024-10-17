@@ -1,13 +1,14 @@
-import time
+import os
 
 import numpy as np
 import torch
 from sklearn.model_selection import KFold
 from torch.utils.data import Subset, ConcatDataset, DataLoader, random_split, Sampler, RandomSampler
 
-from data import DUMP_DATA_FILES
-from src.eegpp import params
-from src.eegpp.dataset import EEGDataset
+from src.eegpp2.data import DUMP_DATA_FILES, DUMP_DATA_DIR
+from src.eegpp2 import params
+from src.eegpp2.dataset import EEGDataset
+from src.eegpp2.utils.data_utils import get_dataset_train
 
 
 class EEGKFoldSampler(Sampler):
@@ -24,12 +25,20 @@ class EEGKFoldSampler(Sampler):
 class EEGKFoldDataLoader:
     def __init__(
             self,
-            dataset_files='all',
+            dataset_files='default',
             n_splits=5,
             n_workers=0,
             batch_size=4,
             minmax_normalized=True,
     ):
+        """
+        :param dataset_files: must be list of Path to dump file or "default"
+        :param n_splits:
+        :param n_workers:
+        :param batch_size:
+        :param minmax_normalized:
+        """
+
         self.minmax_normalized = minmax_normalized
 
         self.val_dataset = None
@@ -44,7 +53,8 @@ class EEGKFoldDataLoader:
         if isinstance(dataset_files, list):
             self.dataset_files = dataset_files
         else:
-            self.dataset_files = range(len(DUMP_DATA_FILES['train']))
+            self.prepare_default_data()
+            self.dataset_files = DUMP_DATA_FILES['train']
 
         self.n_splits = n_splits
         self.n_workers = n_workers
@@ -52,6 +62,13 @@ class EEGKFoldDataLoader:
         self.split_generator = torch.Generator().manual_seed(params.RD_SEED)
         self.dataloader_generator = torch.Generator().manual_seed(0)
         self.setup()
+
+    @staticmethod
+    def prepare_default_data():
+        os.makedirs(DUMP_DATA_DIR, exist_ok=True)
+        for _, _, files in os.walk(DUMP_DATA_DIR):
+            if len(files) != len(DUMP_DATA_FILES['train']):
+                get_dataset_train(remote_type='dump')
 
     def setup(self):
         print("Loading data...")

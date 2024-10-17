@@ -2,7 +2,7 @@ from pathlib import Path
 
 import yaml
 
-from src.eegpp.configs import CONFIG_DIR
+from src.eegpp2.configs import CONFIG_DIR
 
 
 def load_yaml_config(yaml_file):

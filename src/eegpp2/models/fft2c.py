@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from src.eegpp import params
+from src.eegpp2 import params
 
 
 class FFT2CModel(nn.Module):

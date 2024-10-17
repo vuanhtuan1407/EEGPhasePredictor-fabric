@@ -4,8 +4,8 @@ import joblib
 import torch
 from torch.utils.data import Dataset
 
-from src.eegpp import params
-from src.eegpp.utils.data_utils import LABEL_DICT
+from src.eegpp2 import params
+from src.eegpp2.utils.data_utils import LABEL_DICT
 
 
 class EEGDataset(Dataset):

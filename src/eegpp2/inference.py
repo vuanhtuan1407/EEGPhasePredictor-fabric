@@ -10,11 +10,12 @@ from lightning import Fabric
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.eegpp import CACHE_DIR, params
-from src.eegpp.dataset import EEGDataset
-from src.eegpp.utils.common_utils import get_path_slash
-from src.eegpp.utils.data_utils import dump_seq_with_no_labels, LABEL_DICT
-from src.eegpp.utils.model_utils import get_model, check_using_ft, freeze_parameters
+from src.eegpp2 import CACHE_DIR, params
+from src.eegpp2.out import OUT_DIR
+from src.eegpp2.dataset import EEGDataset
+from src.eegpp2.utils.common_utils import get_path_slash
+from src.eegpp2.utils.data_utils import dump_seq_with_no_labels, LABEL_DICT
+from src.eegpp2.utils.model_utils import get_model, check_using_ft, freeze_parameters
 
 torch.set_float32_matmul_precision('medium')
 
@@ -34,20 +35,9 @@ def download_storage(file, remote_type):
 
     print(f'Downloading {remote_type}...')
     dbx.files_download_to_file(
-        download_path=str(Path(CACHE_DIR) / file),
+        download_path=str(os.path.join(OUT_DIR, 'checkpoints', file)),
         path=f'/{remote_type}/{file}',
     )
-
-
-def parse_arguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--storage_token', type=str, default='')
-    parser.add_argument("--model_type", type=str, default="wtresnet501dnc")
-    parser.add_argument("--batch_size", type=int, default=10)
-    parser.add_argument("--n_workers", type=int, default=0)
-    parser.add_argument("--checkpoint_path", type=str, default=None)
-    parser.add_argument('--auto_visualize', type=bool, default=True)
-    return parser.parse_args()
 
 
 def get_checkpoint(model_type, torchscript=False):
@@ -60,18 +50,18 @@ def get_checkpoint(model_type, torchscript=False):
     os.makedirs(CACHE_DIR, exist_ok=True)
 
     if torchscript:
-        best_checkpoint = os.path.join(CACHE_DIR, f'{model_type}_best_scripted.pt')
-        if not os.path.isfile(best_checkpoint):
-            download_storage(
-                remote_type='checkpoints',
-                file=f'{model_type}_best_scripted.pt'
-            )
-        model = torch.jit.load(best_checkpoint)
-        return model
-
+        # best_checkpoint = os.path.join(OUT_DIR, 'checkpoints', f'{model_type}_best_scripted.pt')
+        # if not os.path.isfile(best_checkpoint):
+        #     download_storage(
+        #         remote_type='checkpoints',
+        #         file=f'{model_type}_best_scripted.pt'
+        #     )
+        # model = torch.jit.load(best_checkpoint)
+        # return model
+        raise NotImplemented("Not Implemented for torchscript converter")
     else:
         model = get_model(model_type)
-        best_checkpoint = os.path.join(CACHE_DIR, f'{model_type}_best.pkl')
+        best_checkpoint = os.path.join(OUT_DIR, 'checkpoints', f'{model_type}_best.pkl')
         if not os.path.exists(best_checkpoint):
             download_storage(
                 remote_type='checkpoints',
@@ -82,9 +72,10 @@ def get_checkpoint(model_type, torchscript=False):
         return model
 
 
-def infer(data_path, infer_path=None, model_type='stftcnn1dnc', batch_size=10, n_workers=0, checkpoint_path=None):
+def infer(data_path, infer_path=None, model_type='stftcnn1dnc', batch_size=10, n_workers=0, checkpoint_path=None, remove_tmp=False):
     parent_dir = (get_path_slash()).join(data_path.split(get_path_slash())[:-1])
     minmax_normalized = True
+    use_tmp = False
     if check_using_ft(model_type):
         minmax_normalized = False
     if data_path.endswith('.pkl'):
@@ -99,6 +90,7 @@ def infer(data_path, infer_path=None, model_type='stftcnn1dnc', batch_size=10, n
             save_files=[str(Path(CACHE_DIR) / f'dump_eeg_{t}_infer.pkl')],
         )
         dump_path = str(Path(CACHE_DIR) / f'dump_eeg_{t}_infer.pkl')
+        use_tmp = True
 
     dataset = EEGDataset(
         dump_path=dump_path,
@@ -113,6 +105,9 @@ def infer(data_path, infer_path=None, model_type='stftcnn1dnc', batch_size=10, n
         accelerator='auto',
         devices='auto'
     )
+
+    fabric.print(f"Using: {fabric.device}")
+
     model = fabric.setup_module(model)
     dataloader = fabric.setup_dataloaders(dataloader)
     softmax = torch.nn.Softmax(dim=-1)
@@ -160,7 +155,9 @@ def infer(data_path, infer_path=None, model_type='stftcnn1dnc', batch_size=10, n
 
     print("Saving inference file...")
     np.savetxt(infer_path, infos, fmt='%s')
-    # os.remove(dump_path)
+    print("Inference file saved successfully.")
+    if use_tmp and remove_tmp:
+        os.remove(dump_path)
 
 
 if __name__ == '__main__':
