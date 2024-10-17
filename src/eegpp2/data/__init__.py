@@ -5,6 +5,8 @@ DATA_DIR = os.path.abspath(os.path.dirname(__file__))
 RAW_DATA_DIR = os.path.join(DATA_DIR, 'raw')
 DUMP_DATA_DIR = os.path.join(DATA_DIR, 'dump')
 
+os.makedirs(DUMP_DATA_DIR, exist_ok=True)
+
 SEQ_FILES = [
     str(Path(RAW_DATA_DIR, "raw_K3_EEG3_11h.txt")),
     str(Path(RAW_DATA_DIR, "raw_RS2_EEG1_23 hr.txt")),
