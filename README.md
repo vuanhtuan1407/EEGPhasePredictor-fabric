@@ -1,30 +1,32 @@
-# Using Lightning Fabric
+# EEG Phase Predictor ver 2
 
-# Interface shape
+**Note: This is beta version, use for training with default dataset and inference only
 
-- inp_shape = [batch, 3, (W_out * MAX_SEQ_LEN)]
-- out1_shape = [batch, W_out, 7] --> just take 6 standard labels
-- out2_shape = [batch, W_out, 2] --> represents for star prediction
+## Setup
 
-# Turnoff channel
+- Requirements: python >= 3.10
+- Installing:
 
-ids = [0, 1, 2]
+```aiignore
+  pip install eegpp2
+```
 
-1. turnoff in combine model
 
-- inp_turnoff: inp[:, id, :] = 0
+## Train with default dataset
+```aiignore
+    python --mode "train" --model_type <mode_type> --lr <learning_rate> --batch_size <batch_size> --n_epochs <num_epochs> --n_splits <num_folds> --resume_checkpoint <resume_from_checkpoint>
+```
+ex: `python --mode "train" --model_type "stftcnn1dnc" --n_epochs 20 --n_splits 10 --resume_checkpoint False`
 
-2. turnoff in discrete model
 
-- skip signal
+## Inference
 
-# Model input shape
+```aiignore
+  python --mode "infer" --data_path <path_to_data_file> --infer_path <path_to_saving_file> --model_type <model_type>
+```
 
-1. CNN1D
-2. FFT
-3. Transformer
-4. CNN1D_NC
-5. FFT_NC
-6. Transformer_NC
-7. STFT
-8. STFT_NC
+ex: `python --mode "infer" --data_path "./dump_eeg_1.pkl" --infer_path './inference_result.txt" --model_type "stftcnn1dnc"`
+
+## Model type
+
+- stftcnn1dnc: Multi-channels STFT-CNN

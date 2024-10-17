@@ -1,12 +1,14 @@
 # import joblib
+import os
 
+import dropbox
 import joblib
 import numpy as np
 from tqdm import tqdm
 
-from data import SEQ_FILES, LABEL_FILES, DUMP_DATA_FILES
-from src.eegpp import params
-from src.eegpp.utils.common_utils import get_path_slash, convert_ms2datetime, convert_datetime2ms
+from src.eegpp2.data import SEQ_FILES, LABEL_FILES, DUMP_DATA_FILES
+from src.eegpp2 import params
+from src.eegpp2.utils.common_utils import get_path_slash, convert_ms2datetime, convert_datetime2ms
 
 LABEL_DICT = {0: "W", 1: "W*", 2: "NR", 3: "NR*", 4: "R", 5: "R*", -1: "others"}
 
@@ -36,7 +38,7 @@ def dump_seq_with_labels(seq_files=SEQ_FILES, lb_files=LABEL_FILES, save_files=D
         raise e
 
 
-def dump_seq_with_no_labels(seq_files=SEQ_FILES, step_ms=4000, save_files=DUMP_DATA_FILES["infer"]  ):
+def dump_seq_with_no_labels(seq_files=SEQ_FILES, step_ms=4000, save_files=DUMP_DATA_FILES["infer"]):
     try:
         all_start_ms, all_eeg, all_emg, all_mot, all_mxs = load_seq_only(seq_files, step_ms)
         for i, (start_ms, eeg, emg, mot, mxs) in enumerate(zip(all_start_ms, all_eeg, all_emg, all_mot, all_mxs)):
@@ -192,6 +194,28 @@ def load_lbs(data_files=LABEL_FILES):
             all_lbs.append(tmp_lbs)
 
     return all_start_ms, all_lbs
+
+
+def get_dataset_train(remote_type='dump'):
+    # remote_type in ['raw', 'dump']
+    token_path = input('Enter path to token file: ')
+    if not os.path.exists(token_path):
+        raise ValueError('Token file does not exist!')
+    else:
+        app_key, app_secret, refresh_token = np.loadtxt(token_path, dtype=str)
+
+    dbx = dropbox.Dropbox(
+        app_key=app_key,
+        app_secret=app_secret,
+        oauth2_refresh_token=refresh_token
+    )
+
+    for i in range(3):
+        print(f'Downloading {DUMP_DATA_FILES["train"][i].split(get_path_slash())[-1]}...')
+        dbx.files_download_to_file(
+            download_path=DUMP_DATA_FILES['train'][i],
+            path=f'/data/{remote_type}/{DUMP_DATA_FILES["train"][i].split(get_path_slash())[-1]}',
+        )
 
 
 def create_new_dataset_objdet():

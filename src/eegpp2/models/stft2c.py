@@ -1,6 +1,6 @@
 from torch import nn
 
-from src.eegpp.utils.config_utils import load_yaml_config
+from src.eegpp2.utils.config_utils import load_yaml_config
 
 
 class STFT2CModel(nn.Module):

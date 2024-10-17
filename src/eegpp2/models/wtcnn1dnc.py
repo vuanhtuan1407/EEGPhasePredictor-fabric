@@ -1,51 +1,28 @@
+import numpy as np
 import torch
 from torch import nn
+import pywt
 
-from src.eegpp import params
-from src.eegpp.utils.config_utils import load_yaml_config
-from src.eegpp.utils.data_utils import LABEL_DICT
+from src.eegpp2 import params
+from src.eegpp2.utils.config_utils import load_yaml_config
+from src.eegpp2.utils.data_utils import LABEL_DICT
 
 
-class MNAPooling1D(nn.Module):
-    def __init__(self, kernel_size=2, stride=2, padding=0):
+class WTEmbedding(nn.Module):
+    def __init__(self, emb_size, wavelet='morl'):
         super().__init__()
-        self.max_pooling = nn.MaxPool1d(kernel_size=kernel_size, stride=stride, padding=padding)
-        self.average_pooling = nn.AvgPool1d(kernel_size=kernel_size, stride=stride, padding=padding)
+        self.scales = np.geomspace(1, 1e3, num=emb_size)
+        self.wavelet = wavelet
+        time = np.linspace(0.0, 4.0 * params.W_OUT, num=1024 * params.W_OUT)
+        self.sample_period = np.diff(time).mean()
 
     def forward(self, x):
-        mx = self.max_pooling(x)
-        avg = self.average_pooling(x)
-        return torch.concat([mx, avg], dim=1)
-
-
-class BiMaxPooling1D(nn.Module):
-    def __init__(self, kernel_size=2, stride=2, padding=0):
-        super().__init__()
-        self.max_pooling = nn.MaxPool1d(kernel_size=kernel_size, stride=stride, padding=padding)
-
-    def forward(self, x):
-        mx1 = self.max_pooling(x)
-        mx2 = self.max_pooling(-x)
-        return torch.concat([mx1, mx2], dim=1)
-
-
-class FFTEmbedding(nn.Module):
-    def __init__(self, n_fft, norm='forward', tiled=False, d_model=None):
-        super().__init__()
-        self.n_fft = n_fft
-        self.norm = norm
-        self.tiled = tiled
-        self.d_model = d_model
-
-    def forward(self, x):
-        x = torch.fft.rfft(x, n=self.n_fft, norm=self.norm)
+        device = x.device
+        x = x.cpu().numpy()
+        x, _ = pywt.cwt(x, self.scales, self.wavelet, self.sample_period, axis=-1)
+        x = torch.from_numpy(x).float().to(device)
         x = torch.abs(x)
-        if self.tiled and isinstance(self.d_model, int):
-            x = torch.tile(x, dims=(self.d_model,))
-            x = torch.reshape(x, (x.size(0), self.n_fft // 2 + 1, self.d_model))
-        else:
-            x = torch.unsqueeze(x, dim=-1)
-            x = torch.transpose(x, 1, 2)
+        x = torch.transpose(x, 0, 1)
         return x
 
 
@@ -101,20 +78,21 @@ class FC(nn.Module):
         return x
 
 
-class FFTCNN1DnCModel(nn.Module):
-    def __init__(self, yml_config_file='fftcnn1dnc_config.yml'):
+class WTCNN1DnCModel(nn.Module):
+    def __init__(self, yml_config_file='wtcnn1dnc_config.yml'):
         super().__init__()
-        self.type = 'fftcnn1dnc'
+        self.type = 'wtcnn1dnc'
         self.config = load_yaml_config(yml_config_file)
         num_chains = self.config['num_chains']
         self.chains = nn.ModuleList([nn.Sequential() for _ in range(num_chains)])
         out_dim = 512
         for chain in self.chains:
-            input_embedding = FFTEmbedding(
-                n_fft=self.config['n_fft']
+            input_embedding = WTEmbedding(
+                emb_size=self.config['emb_size'],
+                wavelet=self.config['wavelet'],
             )
             chain.add_module('input_embedding', input_embedding)
-            in_channels = 1
+            in_channels = self.config['emb_size']
             for i, layer_config in enumerate(self.config['conv_layers']):
                 conv_layer = Conv1DLayer(
                     in_channels=in_channels,
@@ -130,7 +108,7 @@ class FFTCNN1DnCModel(nn.Module):
                 chain.add_module(name=layer_config['name'], module=conv_layer)
                 in_channels = layer_config['out_channels']
             flatten = nn.Flatten()
-            fc = FC(in_dim=1024 * 15, out_dim=out_dim)
+            fc = FC(in_dim=1024 * 35, out_dim=out_dim)
             chain.add_module('flatten', flatten)
             chain.add_module('fc', fc)
 
