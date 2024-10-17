@@ -14,5 +14,14 @@ out/figures
 # backup
 backup
 
+# cache
+src/eegpp/cache
+
+# envs
+TOKEN.txt
+
+# result
+inference_result.txt
+
 # .ipynb
 *.ipynb

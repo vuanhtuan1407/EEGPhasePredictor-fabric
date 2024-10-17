@@ -24,25 +24,25 @@ def get_lb_idx(lb_text):
     return lb_idx
 
 
-def dump_seq_with_labels(seq_files=SEQ_FILES, lb_files=LABEL_FILES):
+def dump_seq_with_labels(seq_files=SEQ_FILES, lb_files=LABEL_FILES, save_files=DUMP_DATA_FILES["train"]):
     try:
         all_start_ms, all_eeg, all_emg, all_mot, all_lbs, all_mxs = load_seq_with_labels(seq_files, lb_files)
         for i, (start_ms, eeg, emg, mot, lbs, mxs) in enumerate(
                 zip(all_start_ms, all_eeg, all_emg, all_mot, all_lbs, all_mxs)):
-            print(f'Dumping data in file {DUMP_DATA_FILES["train"][i]}')
+            print(f'Dumping data in file {save_files[i]}')
             start_datetime = [convert_ms2datetime(ms) for ms in start_ms]
-            joblib.dump((start_datetime, eeg, emg, mot, lbs, mxs), DUMP_DATA_FILES['train'][i])
+            joblib.dump((start_datetime, eeg, emg, mot, lbs, mxs), save_files[i])
     except Exception as e:
         raise e
 
 
-def dump_seq_with_no_labels(seq_files=SEQ_FILES, step_ms=4000):
+def dump_seq_with_no_labels(seq_files=SEQ_FILES, step_ms=4000, save_files=DUMP_DATA_FILES["infer"]  ):
     try:
         all_start_ms, all_eeg, all_emg, all_mot, all_mxs = load_seq_only(seq_files, step_ms)
         for i, (start_ms, eeg, emg, mot, mxs) in enumerate(zip(all_start_ms, all_eeg, all_emg, all_mot, all_mxs)):
-            print(f'Dumping data in file {DUMP_DATA_FILES["infer"][i]}')
+            print(f'Dumping data in file {save_files[i]}')
             start_datetime = [convert_ms2datetime(ms) for ms in start_ms]
-            joblib.dump((start_datetime, eeg, emg, mot, mxs), DUMP_DATA_FILES['infer'][i])
+            joblib.dump((start_datetime, eeg, emg, mot, mxs), save_files[i])
     except Exception as e:
         raise e
 
@@ -205,7 +205,7 @@ def create_new_dataset_objdet():
             lb_ii = lbs[i + 1]
             # c1 = lb_i % 2 == 0 and lb_ii % 2 == 0 and lb_i != lb_ii and lb_i != -1 and lb_ii != -1
             # c2 = lb_i != lb_ii and lb_i != -1 and lb_ii != -1
-            c3 = lb_i != -1 and lb_ii != -1 and abs(lb_i - lb_ii) > 1
+            c3 = lb_i != -1 and lb_ii != -1 and abs(lb_i - lb_ii) >= 1 and (lb_i % 2 == 0 or lb_ii % 2 == 0)
             if c3:
                 transfer_ms.append(start_ms[i + 1])
         print(np.array(transfer_ms).shape)

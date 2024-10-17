@@ -11,6 +11,7 @@
       <excludeFolder url="file://$MODULE_DIR$/out/figures" />
       <excludeFolder url="file://$MODULE_DIR$/data/raw" />
       <excludeFolder url="file://$MODULE_DIR$/backup" />
+      <excludeFolder url="file://$MODULE_DIR$/src/eegpp/cache" />
     </content>
     <orderEntry type="jdk" jdkName="EEGPP" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

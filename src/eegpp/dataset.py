@@ -19,15 +19,25 @@ class EEGDataset(Dataset):
         :param minmax_normalized: set minmax_normalized to False when using Fourier Transform
         """
         # data = (start_datetime, eeg, emg, mot, [lbs], mxs)
-        self.is_infer = is_infer
+        # self.is_infer = is_infer
         self.w_out = w_out
         self.contain_side = contain_side
         self.minmax_normalized = minmax_normalized
-        if not is_infer:
-            self.start_datetime, self.eeg, self.emg, self.mot, self.lbs, self.mxs = joblib.load(dump_path)
-        else:
-            self.start_datetime, self.eeg, self.emg, self.mot, self.mxs = joblib.load(dump_path)
+        data = joblib.load(dump_path)
+        if len(data) == 6:
+            self.start_datetime, self.eeg, self.emg, self.mot, self.lbs, self.mxs = data
+            self.is_infer = False
+        elif len(data) == 5:
+            self.start_datetime, self.eeg, self.emg, self.mot, self.mxs = data
             self.lbs = []
+            self.is_infer = True
+        else:
+            raise ValueError('Error in EEGDataset. Dump file length should be 6 or 5')
+        # if not is_infer:
+        #     self.start_datetime, self.eeg, self.emg, self.mot, self.lbs, self.mxs = joblib.load(dump_path)
+        # else:
+        #     self.start_datetime, self.eeg, self.emg, self.mot, self.mxs = joblib.load(dump_path)
+        #     self.lbs = []
         self.segment_length = params.MAX_SEQ_SIZE
 
     def __len__(self):
