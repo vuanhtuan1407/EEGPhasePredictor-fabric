@@ -4,7 +4,7 @@ from typing import Optional
 
 import pandas as pd
 
-from src.eegpp2.out import OUT_DIR
+from .out import OUT_DIR
 
 
 class MyLogger(object):

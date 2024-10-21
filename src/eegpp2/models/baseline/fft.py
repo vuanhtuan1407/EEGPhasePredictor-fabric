@@ -1,6 +1,6 @@
 import torch
 
-from src.eegpp2 import params
+from ... import params
 
 
 class FFTModel(torch.nn.Module):

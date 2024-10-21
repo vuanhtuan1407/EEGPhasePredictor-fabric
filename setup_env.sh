@@ -13,7 +13,7 @@ conda install -c conda-forge pandas==2.2.2 -y
 conda install -c conda-forge scipy==1.14.1 -y
 conda install -c conda-forge numpy==2.1.1 -y
 conda install -c conda-forge pywavelets==1.7.0 -y
-conda install -c conda-forge dropbox
+pip install dropbox==12.0.2
 pip install joblib==1.4.2
 pip install ptwt==0.1.9
 pip install python-dotenv==1.0.1

@@ -10,13 +10,12 @@ from sklearn.metrics import roc_auc_score as auroc
 from torch.optim import Adam
 from tqdm import tqdm
 
-from src.eegpp2.out import OUT_DIR
-from src.eegpp2 import params
-from src.eegpp2.dataloader import EEGKFoldDataLoader
-from src.eegpp2.logger import MyLogger
-from src.eegpp2.utils.common_utils import generate_normal_vector
-from src.eegpp2.utils.model_utils import get_model, freeze_parameters, unfreeze_parameters, check_using_ft, \
-    summarize_model
+from .out import OUT_DIR
+from . import params
+from .dataloader import EEGKFoldDataLoader
+from .logger import MyLogger
+from .utils.common_utils import generate_normal_vector
+from .utils.model_utils import get_model, freeze_parameters, unfreeze_parameters, check_using_ft, summarize_model
 
 torch.set_float32_matmul_precision('medium')
 

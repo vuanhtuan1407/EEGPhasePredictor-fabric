@@ -3,10 +3,10 @@ import math
 import torch
 from torch import nn
 
-# from src.eegpp2.utils.model_utils import freeze_parameters
-from src.eegpp2 import params
-from src.eegpp2.utils.config_utils import load_yaml_config
-from src.eegpp2.utils.data_utils import LABEL_DICT
+# from ...utils.model_utils import freeze_parameters
+from ... import params
+from ...utils.config_utils import load_yaml_config
+from ...utils.data_utils import LABEL_DICT
 
 
 class InputEmbedding(nn.Module):

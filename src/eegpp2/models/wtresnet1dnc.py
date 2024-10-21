@@ -4,10 +4,10 @@ import ptwt
 import torch
 from torch import nn
 
-from src.eegpp2 import params
-from src.eegpp2.models.baseline.resnet import ResNet50
-from src.eegpp2.utils.config_utils import load_yaml_config
-from src.eegpp2.utils.data_utils import LABEL_DICT
+from .. import params
+from ..models.baseline.resnet import ResNet50
+from ..utils.config_utils import load_yaml_config
+from ..utils.data_utils import LABEL_DICT
 
 
 class WTEmbedding(nn.Module):

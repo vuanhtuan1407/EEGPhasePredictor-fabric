@@ -4,8 +4,8 @@ import joblib
 import torch
 from torch.utils.data import Dataset
 
-from src.eegpp2 import params
-from src.eegpp2.utils.data_utils import LABEL_DICT
+from . import params
+from .utils.data_utils import LABEL_DICT
 
 
 class EEGDataset(Dataset):
@@ -20,6 +20,7 @@ class EEGDataset(Dataset):
         """
         # data = (start_datetime, eeg, emg, mot, [lbs], mxs)
         # self.is_infer = is_infer
+        self.inp_path = dump_path
         self.w_out = w_out
         self.contain_side = contain_side
         self.minmax_normalized = minmax_normalized

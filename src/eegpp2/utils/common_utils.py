@@ -8,6 +8,27 @@ FORMAT1 = '%Y.%m.%d.  %H:%M:%S.%f'  # use in original seq files
 FORMAT2 = '%Y.%m.%d.  %H:%M:%S'  # use in original label files and use as default format
 
 
+def convert_time(time_string, offset=946659600000):
+    FORMAT1 = '%Y.%m.%d.  %H:%M:%S.%f'
+    FORMAT11 = '%Y.%m.%d.  %H:%M:%S'
+    if time_string.__contains__("/"):
+        FORMAT1 = '%m/%d/%Y  %H:%M:%S.%f'
+        FORMAT11 = '%m/%d/%Y  %H:%M:%S.%f'
+
+    try:
+        if time_string[-5:].__contains__("."):
+            dt_obj = datetime.strptime(time_string,
+                                       FORMAT1)
+        else:
+            dt_obj = datetime.strptime(time_string,
+                                       FORMAT11)
+
+        millisec = int(dt_obj.timestamp() * 1000) - offset
+    except:
+        millisec = -1
+    return millisec
+
+
 def convert_datetime2ms(datetime_str: str, offset=946659600000):
     if datetime_str.__contains__("/"):
         format_seq = '%m/%d/%Y  %H:%M:%S.%f'
