@@ -6,9 +6,9 @@ import joblib
 import numpy as np
 from tqdm import tqdm
 
-from src.eegpp2.data import SEQ_FILES, LABEL_FILES, DUMP_DATA_FILES
-from src.eegpp2 import params
-from src.eegpp2.utils.common_utils import get_path_slash, convert_ms2datetime, convert_datetime2ms
+from ..data import SEQ_FILES, LABEL_FILES, DUMP_DATA_FILES
+from .. import params
+from ..utils.common_utils import get_path_slash, convert_ms2datetime, convert_datetime2ms
 
 LABEL_DICT = {0: "W", 1: "W*", 2: "NR", 3: "NR*", 4: "R", 5: "R*", -1: "others"}
 
@@ -159,10 +159,22 @@ def load_seq_only(data_files=SEQ_FILES, step_ms=None):
                 tmp_emg.append(float(values[1]))
                 tmp_mot.append(float(values[2]))
 
-            start_ms.append(tmp_ms)
-            eeg.append(tmp_eeg)
-            emg.append(tmp_emg)
-            mot.append(tmp_mot)
+            # update if num lbs > num segments and
+            if len(tmp_eeg) >= params.MAX_SEQ_SIZE and len(tmp_emg) >= params.MAX_SEQ_SIZE and len(
+                    tmp_mot) == params.MAX_SEQ_SIZE:
+                eeg.append(tmp_eeg)
+                emg.append(tmp_emg)
+                mot.append(tmp_mot)
+                start_ms.append(tmp_ms)
+            else:
+                print("Sequence size less than default. Ignore this segment")
+
+            # all_start_ms[i] = start_ms[: tmp_idx]
+            # all_lbs[i] = lbs[: tmp_idx]
+            # start_ms.append(tmp_ms)
+            # eeg.append(tmp_eeg)
+            # emg.append(tmp_emg)
+            # mot.append(tmp_mot)
 
         all_start_ms.append(start_ms)
         all_eeg.append(eeg)

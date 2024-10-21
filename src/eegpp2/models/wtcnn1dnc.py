@@ -3,9 +3,9 @@ import torch
 from torch import nn
 import pywt
 
-from src.eegpp2 import params
-from src.eegpp2.utils.config_utils import load_yaml_config
-from src.eegpp2.utils.data_utils import LABEL_DICT
+from .. import params
+from ..utils.config_utils import load_yaml_config
+from ..utils.data_utils import LABEL_DICT
 
 
 class WTEmbedding(nn.Module):

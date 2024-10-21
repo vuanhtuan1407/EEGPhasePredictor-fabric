@@ -5,11 +5,28 @@ import torch
 from sklearn.model_selection import KFold
 from torch.utils.data import Subset, ConcatDataset, DataLoader, random_split, Sampler, RandomSampler
 
-from src.eegpp2.data import DUMP_DATA_FILES, DUMP_DATA_DIR
-from src.eegpp2 import params
-from src.eegpp2.dataset import EEGDataset
-from src.eegpp2.utils.data_utils import get_dataset_train
+from .data import DUMP_DATA_FILES, DUMP_DATA_DIR
+from . import params
+from .dataset import EEGDataset
+from .utils.data_utils import get_dataset_train
 
+LABEL_MARKER = "EpochNo"
+
+def fread_header_labels(inp):
+    global SEP_CHECKED, SEPERATOR
+    fin = open(inp, errors='ignore')
+
+    headers = []
+
+    while True:
+        line = fin.readline()
+        if line == "":
+            break
+        headers.append(line)
+        if line.startswith(LABEL_MARKER):
+            break
+
+    return "".join(headers), fin
 
 class EEGKFoldSampler(Sampler):
     def __init__(self, dataset, k_fold):

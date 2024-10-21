@@ -8,10 +8,10 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-from src.eegpp2.data import DUMP_DATA_FILES
-from src.eegpp2.out import OUT_DIR
-from src.eegpp2 import params
-from src.eegpp2.utils.data_utils import LABEL_DICT
+from .data import DUMP_DATA_FILES
+from .out import OUT_DIR
+from . import params
+from .utils.data_utils import LABEL_DICT
 
 
 def load_csv(filepath):

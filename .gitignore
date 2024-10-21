@@ -1,8 +1,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-dist/*
-
+dist/
+src/eegpp2_beta.egg-info/
 
 # data
 src/eegpp2/data/dump
@@ -12,8 +12,6 @@ src/eegpp2/data/raw
 src/eegpp2/out/checkpoints
 src/eegpp2/out/logs
 src/eegpp2/out/figures
-
-src/eegpp2.egg-info/*
 
 # backup
 backup
@@ -32,4 +30,4 @@ inference_result.txt
 
 # others
 Guide.md
-requirements.txt
+data_config_infer2.yml

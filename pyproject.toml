@@ -2,8 +2,8 @@
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 [project]
-name = "eegpp2"
-version = "0.0.1"
+name = "eegpp2-beta"
+version = "0.1.4"
 authors = [
     { name = "Vũ Anh Tuấn", email = "vuanhtuan1407@gmail.com" },
 ]
@@ -33,3 +33,6 @@ dependencies = [
 ]
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+eegpp2 = ["configs/*.yml"]
