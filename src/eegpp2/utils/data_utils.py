@@ -16,7 +16,7 @@ PATH_SLASH = get_path_slash()
 
 INF_V = 1e6
 
-
+SEP = None
 def get_lb_idx(lb_text):
     lb_idx = -1
     for k, v in LABEL_DICT.items():
@@ -53,7 +53,9 @@ def load_seq_with_labels(seq_files=SEQ_FILES, lb_files=LABEL_FILES):
     all_start_ms, all_lbs = load_lbs(lb_files)
     print('Processing sequences...')
     all_eeg, all_emg, all_mot, all_mxs = [[], [], [], []]
+    global SEP
     for i, seq_file in enumerate(seq_files):
+        print(seq_file)
         start_ms = all_start_ms[i]
         lbs = all_lbs[i]
         eeg, emg, mot = [[], [], []]
@@ -65,9 +67,17 @@ def load_seq_with_labels(seq_files=SEQ_FILES, lb_files=LABEL_FILES):
             while not data[start_line].__contains__('Time') and start_line < len(data):
                 start_line = start_line + 1
             tmp_eeg, tmp_emg, tmp_mot = [[], [], []]
+            s = 0
             for line in tqdm(data[start_line + 1:], total=len(data[start_line + 1:]),
                              desc=seq_file.split(PATH_SLASH)[-1]):
-                info = line.split('\t')
+                s += 1
+                if SEP is None or s==1:
+                    if line.__contains__(','):
+                        SEP = ","
+                    else:
+                        SEP = "\t"
+                info = line.split(SEP)
+
                 if len(info) == 2:  # Final line in raw_S1_EEG1_23 hr.txt
                     dt, values = info[0], (info[1], 0.0, 0.0)  # Fill missing value
                 else:
@@ -120,6 +130,8 @@ def load_seq_only(data_files=SEQ_FILES, step_ms=None):
     if step_ms is None:
         step_ms = 4000
     print('Processing sequences...')
+    print(data_files)
+    global SEP
     all_start_ms, all_eeg, all_emg, all_mot, all_mxs = [[], [], [], [], []]
     for data_file in data_files:
         start_ms, eeg, emg, mot = [[], [], [], []]
@@ -131,9 +143,16 @@ def load_seq_only(data_files=SEQ_FILES, step_ms=None):
             while not data[start_line].__contains__('Time') and start_line < len(data):
                 start_line = start_line + 1
             tmp_eeg, tmp_emg, tmp_mot = [[], [], []]
+            s = 0
             for line in tqdm(data[start_line + 1:], total=len(data[start_line + 1:]),
                              desc=data_file.split(PATH_SLASH)[-1]):
-                info = line.split('\t')
+                s += 1
+                if SEP is None or s == 1:
+                    if line.__contains__(','):
+                        SEP = ","
+                    else:
+                        SEP = "\t"
+                info = line.split(SEP)
                 if len(info) == 2:  # Final line in raw_S1_EEG1_23 hr.txt
                     dt, values = info[0], (info[1], 0.0, 0.0)  # Fill missing value
                 else:
@@ -159,22 +178,10 @@ def load_seq_only(data_files=SEQ_FILES, step_ms=None):
                 tmp_emg.append(float(values[1]))
                 tmp_mot.append(float(values[2]))
 
-            # update if num lbs > num segments and
-            if len(tmp_eeg) >= params.MAX_SEQ_SIZE and len(tmp_emg) >= params.MAX_SEQ_SIZE and len(
-                    tmp_mot) == params.MAX_SEQ_SIZE:
-                eeg.append(tmp_eeg)
-                emg.append(tmp_emg)
-                mot.append(tmp_mot)
-                start_ms.append(tmp_ms)
-            else:
-                print("Sequence size less than default. Ignore this segment")
-
-            # all_start_ms[i] = start_ms[: tmp_idx]
-            # all_lbs[i] = lbs[: tmp_idx]
-            # start_ms.append(tmp_ms)
-            # eeg.append(tmp_eeg)
-            # emg.append(tmp_emg)
-            # mot.append(tmp_mot)
+            start_ms.append(tmp_ms)
+            eeg.append(tmp_eeg)
+            emg.append(tmp_emg)
+            mot.append(tmp_mot)
 
         all_start_ms.append(start_ms)
         all_eeg.append(eeg)

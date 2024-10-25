@@ -20,7 +20,7 @@ backup
 src/eegpp2/cache
 
 # envs
-TOKEN.txt
+src/eegpp2/TOKEN.txt
 
 # result
 inference_result.txt

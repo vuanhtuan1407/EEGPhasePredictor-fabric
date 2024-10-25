@@ -1,3 +1,6 @@
+import os
+
+CDIR = os.path.dirname(os.path.abspath(__file__))
 BATCH_SIZE = 8
 ENABLE_LOGGING = False
 ENABLE_CHECKPOINTING = True
