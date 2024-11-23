@@ -1,27 +1,33 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+dist/
+src/eegpp2_beta.egg-info/
 
 # data
-data/dump
-data/raw
+src/eegpp2/data/dump
+src/eegpp2/data/raw
 
 # out
-out/checkpoints
-out/logs
-out/figures
+src/eegpp2/out/checkpoints
+src/eegpp2/out/logs
+src/eegpp2/out/figures
 
 # backup
 backup
 
 # cache
-src/eegpp/cache
+src/eegpp2/cache
 
 # envs
-TOKEN.txt
+src/eegpp2/TOKEN.txt
 
 # result
 inference_result.txt
 
 # .ipynb
 *.ipynb
+
+# others
+Guide.md
+data_config_infer2.yml
