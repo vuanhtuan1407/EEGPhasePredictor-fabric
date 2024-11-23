@@ -2,17 +2,9 @@
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
-      <excludeFolder url="file://$MODULE_DIR$/data/dump" />
       <excludeFolder url="file://$MODULE_DIR$/wandb" />
       <excludeFolder url="file://$MODULE_DIR$/wandb/run-20240825_220127-832qmyf6/logs" />
-      <excludeFolder url="file://$MODULE_DIR$/out/checkpoints" />
-      <excludeFolder url="file://$MODULE_DIR$/out/logs/wandb" />
-      <excludeFolder url="file://$MODULE_DIR$/out/logs" />
-      <excludeFolder url="file://$MODULE_DIR$/out/figures" />
-      <excludeFolder url="file://$MODULE_DIR$/data/raw" />
       <excludeFolder url="file://$MODULE_DIR$/backup" />
-      <excludeFolder url="file://$MODULE_DIR$/src/eegpp/cache" />
-      <excludeFolder url="file://$MODULE_DIR$/dist" />
       <excludeFolder url="file://$MODULE_DIR$/src/eegpp2/cache" />
       <excludeFolder url="file://$MODULE_DIR$/src/eegpp2/data/dump" />
       <excludeFolder url="file://$MODULE_DIR$/src/eegpp2/data/raw" />
@@ -25,7 +17,7 @@
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">
-    <option name="versionSpecifier" value="Strong equality (==x.y.z)" />
+    <option name="versionSpecifier" value="Greater or equal (&gt;=x.y.z)" />
     <option name="removeUnused" value="true" />
     <option name="modifyBaseFiles" value="true" />
   </component>
