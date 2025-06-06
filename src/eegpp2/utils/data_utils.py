@@ -1,4 +1,3 @@
-# import joblib
 import os
 
 import dropbox
@@ -260,7 +259,7 @@ def create_new_dataset_objdet():
 
 if __name__ == '__main__':
     # os.makedirs(DUMP_DATA_DIR, exist_ok=True)
-    # dump_seq_with_labels()
+    dump_seq_with_labels()
     # load_seq_only(step_ms=4000)
     # load_seq_with_labels()
-    create_new_dataset_objdet()
+    # create_new_dataset_objdet()

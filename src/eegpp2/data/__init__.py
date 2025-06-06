@@ -11,23 +11,29 @@ SEQ_FILES = [
     str(Path(RAW_DATA_DIR, "raw_K3_EEG3_11h.txt")),
     str(Path(RAW_DATA_DIR, "raw_RS2_EEG1_23 hr.txt")),
     str(Path(RAW_DATA_DIR, "raw_S1_EEG1_23 hr.txt")),
+    str(Path(RAW_DATA_DIR, "K1_EEG1_SAL.csv")),
+    str(Path(RAW_DATA_DIR, "K1_EEG7_SAL.csv")),
+    str(Path(RAW_DATA_DIR, "K2_EEG4_SAL.csv")),
+    str(Path(RAW_DATA_DIR, "K2_EEG5_SAL.csv")),
+    str(Path(RAW_DATA_DIR, "K4_EEG7_SAL.csv")),
 ]
 
 LABEL_FILES = [
     str(Path(RAW_DATA_DIR, "K3_EEG3_11h.txt")),
     str(Path(RAW_DATA_DIR, "RS2_EEG1_23 hr.txt")),
     str(Path(RAW_DATA_DIR, "S1_EEG1_23 hr.txt")),
+    str(Path(RAW_DATA_DIR, "K1_EEG1_11h.txt")),
+    str(Path(RAW_DATA_DIR, "K1_EEG7_11h.txt")),
+    str(Path(RAW_DATA_DIR, "K2_EEG4_11h.txt")),
+    str(Path(RAW_DATA_DIR, "K2_EEG5_11h.txt")),
+    str(Path(RAW_DATA_DIR, "K4_EEG7_11h.txt")),
 ]
 
 DUMP_DATA_FILES = {
     "train": [
-        str(Path(DUMP_DATA_DIR, "dump_eeg_1.pkl")),
-        str(Path(DUMP_DATA_DIR, "dump_eeg_2.pkl")),
-        str(Path(DUMP_DATA_DIR, "dump_eeg_3.pkl")),
+        str(Path(DUMP_DATA_DIR, f"dump_eeg_{i+1}.pkl")) for i in range(len(SEQ_FILES))
     ],
     "infer": [
-        str(Path(DUMP_DATA_DIR, "dump_eeg_1_infer.pkl")),
-        str(Path(DUMP_DATA_DIR, "dump_eeg_2_infer.pkl")),
-        str(Path(DUMP_DATA_DIR, "dump_eeg_3_infer.pkl")),
-    ]
+        str(Path(DUMP_DATA_DIR, f"dump_eeg_{i+1}_infer.pkl")) for i in range(len(SEQ_FILES))
+    ],
 }
