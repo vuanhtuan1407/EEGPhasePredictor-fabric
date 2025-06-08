@@ -91,7 +91,7 @@ class EEGKFoldDataLoader:
         print("Loading data...")
         datasets = []
         train_val_dts, test_dts = [], []
-        for i in self.dataset_files:
+        for i, _ in enumerate(self.dataset_files):
             print(type(DUMP_DATA_FILES), DUMP_DATA_FILES)
             dump_file = DUMP_DATA_FILES['train'][i]
             print("Loading dump file {}".format(dump_file))
