@@ -92,7 +92,7 @@ class EEGKFoldDataLoader:
         datasets = []
         train_val_dts, test_dts = [], []
         for i, _ in enumerate(self.dataset_files):
-            print(type(DUMP_DATA_FILES), DUMP_DATA_FILES)
+            # print(type(DUMP_DATA_FILES), DUMP_DATA_FILES)
             dump_file = DUMP_DATA_FILES['train'][i]
             print("Loading dump file {}".format(dump_file))
             i_dataset = EEGDataset(dump_file, w_out=params.W_OUT, minmax_normalized=self.minmax_normalized)
