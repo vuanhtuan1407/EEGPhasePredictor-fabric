@@ -265,6 +265,18 @@ class EEGKFoldTrainer:
                         self.fabric.print("Early Stopping because criteria did not improve!")
                         break
 
+                if epoch + 1 % 5 == 0:
+                    state_dict = {
+                        "best_fold": best_fold,
+                        "best_epoch": best_epoch,
+                        "best_criteria": best_criteria,
+                        "last_fold": k,
+                        "last_epoch": epoch,
+                        "last_model_state_dict": model.state_dict(),
+                        "last_optimizer_state_dict": optimizer.state_dict(),
+                    }
+                    self.fabric.save(f'{OUT_DIR}/checkpoints/{self.model_type}_last.pkl', state_dict)
+
             #     total_epoch = k * self.n_epochs + epoch + 1
             #     t_current = time.time() - t_0
             #     t_next_expect = t_current + t_current / total_epoch
