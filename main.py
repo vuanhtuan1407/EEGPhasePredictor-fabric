@@ -24,6 +24,7 @@ def parse_arguments():
                         help='Need to specify data file path when in infer mode')
     parser.add_argument("--infer_path", type=str, default=None)
     parser.add_argument("--remove_tmp", type=bool, default=True)
+    parser.add_argument('--accelerator', type=str, default='auto')
     return parser.parse_args()
 
 
@@ -48,7 +49,7 @@ def run():
             n_splits=args.n_splits,
             n_epochs=args.n_epochs,
             n_workers=args.n_workers,
-            accelerator=params.ACCELERATOR,
+            accelerator=args.accelerator,
             devices=params.DEVICES,
             early_stopping=None,  # Force not apply early stopping because of KFold training process
             export_torchscript=args.export_torchscript,
